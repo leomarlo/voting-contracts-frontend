@@ -13,7 +13,7 @@ const buttonStyle = {
   minWidth: "200px",
   minHeight: "45px"
 }
-
+// using help of https://dev.to/yakult/tutorial-build-dapp-with-web3-react-and-swr-1fb0
 
 const ConnectWallet = () => {
   const injectedConnector = new InjectedConnector(
@@ -22,6 +22,7 @@ const ConnectWallet = () => {
         1, // Mainnet
         5, // Goerli
         137, // Polygon
+        1337, // localhost
         80001, // Mumbai
         1337802, // Kiln
         11155111 // Sepolia

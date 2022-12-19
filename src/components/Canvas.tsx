@@ -3,7 +3,7 @@ import React from 'react'
 import "../styles/main.css";
 
 const canvasStyle = {
-  backgroundColor: "#efd8d4",
+  backgroundColor: "#efe8e4",
   width: "100vw",
   height: "100vh",
   padding: 0,
