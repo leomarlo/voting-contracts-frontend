@@ -1,0 +1,45 @@
+{
+    // Enable/disable default JavaScript formatter (For Prettier)
+    "javascript.format.enable": true,
+    // Use 'prettier-eslint' instead of 'prettier'. Other settings will only be fallbacks in case they could not be inferred from eslint rules.
+    "eslint.autoFixOnSave": true, // change here if you don't want autosave
+    "eslint.validate": [
+      "javascript",
+      "javascriptreact",
+      {
+        "language": "typescript",
+        "autoFix": true
+      },
+      {
+        "language": "typescriptreact",
+        "autoFix": true
+      }
+    ],
+    "editor.formatOnSave": true,
+    "[javascript]": {
+      "editor.formatOnSave": true
+    },
+    "[javascriptreact]": {
+      "editor.formatOnSave": true
+    },
+    "[typescript]": {
+      "editor.formatOnSave": true
+    },
+    "[typescriptreact]": {
+      "editor.formatOnSave": true
+    },
+    "[solidity]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.tabCompletion": "on",
+    "editor.tabSize": 2,
+    "prettier.eslintIntegration": true,
+    "javascript.validate.enable": true,
+    // "diffEditor.ignoreTrimWhitespace": true,
+    "editor.rulers": [120, 160],
+    "cSpell.words": [],
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true
+    }
+  }
+  
