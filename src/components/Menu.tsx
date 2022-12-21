@@ -11,14 +11,16 @@ interface MenuArgs {
 const Menu: React.FC<MenuArgs> = ({ setSelectedPage }: MenuArgs) => {
   return (
     <ul>
-      <li>Overview</li>
-      <li onClick={() => {
-        setSelectedPage("voting-contracts")
-        // console.log("You clicked me!")
-      }}>Voting Contracts</li>
-      <li>Voting Registry</li>
-      <li>Voting Registrar</li>
-      <li onClick={() => { setSelectedPage("voting-playground") }}>Voting Playground</li>
+      <li key="Overview">Overview</li>
+      <li
+        key="voting-contracts"
+        onClick={() => {
+          setSelectedPage("voting-contracts")
+        }}>
+        Voting Contracts</li>
+      <li key="voting-registry">Voting Registry</li>
+      <li key="voting-registrar">Voting Registrar</li>
+      <li key="voting-playground" onClick={() => { setSelectedPage("voting-playground") }}>Voting Playground</li>
     </ul>
   )
 }

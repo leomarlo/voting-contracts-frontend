@@ -5,8 +5,9 @@ import React, { useState } from "react"
 import { Menu } from "./Menu"
 import { Content } from "./Content"
 import { Details } from "./Details"
-import { VotingContracts } from "./VotingContracts"
+import { VotingContractsComp } from "./VotingContracts"
 import { SelectedPageOptions, FocusOnDetailsVarAndSetter } from "../types/components"
+import { VotingPlaygroundComp } from "./VotingPlayground"
 
 const mainStyle = {
   zIndex: 2,
@@ -36,7 +37,9 @@ const Main: React.FC = () => {
     setter: setFocusOnDetails
   }
 
-  const [selectedPage, setSelectedPage] = useState<SelectedPageOptions>("voting-contracts")
+  const [selectedPage, setSelectedPage] = useState<SelectedPageOptions>(
+    "voting-playground"
+  )
 
   // const changeFocusInMain = () => {
   //   focusOnDetails ? setFocusOnDetails(false) : setFocusOnDetails(true)
@@ -44,9 +47,9 @@ const Main: React.FC = () => {
 
   const getContentDOM = () => {
     if (selectedPage == "voting-contracts") {
-      return (<VotingContracts focusOnDetails={focusOnDetailsVarAndSetter} />)
+      return (<VotingContractsComp focusOnDetails={focusOnDetailsVarAndSetter} />)
     } else if (selectedPage == "voting-playground") {
-      return (<Content focusOnDetails={focusOnDetailsVarAndSetter} />)
+      return (<VotingPlaygroundComp focusOnDetails={focusOnDetailsVarAndSetter} />)
     } else {
       return (<Content focusOnDetails={focusOnDetailsVarAndSetter} />)
     }

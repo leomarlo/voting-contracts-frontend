@@ -89,9 +89,10 @@ const Content: React.FC<ContentArgs> = ({ focusOnDetails }: ContentArgs) => {
     const title = (method.name) ? method.name : "No title"
     return (
       <StandardReadWriteCard
-        callback={changeFocusCallback}
+        identifier={title}
+        buttonCallback={changeFocusInMain}
         buttonType="secondary"
-        cardText={JSON.stringify(method)}
+        cardBody={JSON.stringify(method)}
         cardTitle={title}
         headerColor={headerColor}
         marginTop={marginTop}
@@ -122,7 +123,7 @@ const Content: React.FC<ContentArgs> = ({ focusOnDetails }: ContentArgs) => {
       {/* <StandardReadWriteCard
         callback={changeFocusCallback}
         buttonType="secondary"
-        cardText="Hello"
+        cardBody="Hello"
         cardTitle="Some Title"
         headerColor="warning"
         marginTop={3}

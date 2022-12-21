@@ -28,7 +28,7 @@ interface VotingContractsArgs {
   focusOnDetails: FocusOnDetailsVarAndSetter
 }
 
-const VotingContracts: React.FC<VotingContractsArgs> = ({ focusOnDetails }: VotingContractsArgs) => {
+const VotingContractsComp: React.FC<VotingContractsArgs> = ({ focusOnDetails }: VotingContractsArgs) => {
 
   const { account, chainId, library } = useWeb3React<ethers.providers.Web3Provider>()
 
@@ -65,10 +65,10 @@ const VotingContracts: React.FC<VotingContractsArgs> = ({ focusOnDetails }: Voti
     let title = entry.name
     return (
       <StandardReadWriteCard
-        key={"VotingContract" + i}
-        callback={changeFocusInMain}
+        identifier={"VotingContract" + i}
+        buttonCallback={changeFocusInMain}
         buttonType="secondary"
-        cardText={entry.info.address}
+        cardBody={entry.info.address}
         cardTitle={title}
         headerColor={headerColor}
         marginTop={marginTop}
@@ -93,5 +93,5 @@ const VotingContracts: React.FC<VotingContractsArgs> = ({ focusOnDetails }: Voti
 }
 
 export {
-  VotingContracts
+  VotingContractsComp
 }
