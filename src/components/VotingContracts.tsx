@@ -6,6 +6,7 @@ import { ethers } from "ethers"
 import { BasicButton } from "./buttons/BasicButton"
 import { StandardReadWriteCard, StandardReadWriteCardArgs } from "./cards/StandardReadWrite"
 import { reverseResolveChainId } from "../utils/chains"
+import { FocusOnDetailsVarAndSetter } from "../types/components"
 
 import majorityVoteWithNft from "../abis/MajorityVoteWithNFTQuorumAndOptionalDVGuard"
 import plainMajority from "../abis/PlainMajorityVoteWithQuorum"
@@ -23,14 +24,17 @@ const transactStyle = {
   minHeight: "45px"
 }
 
-interface ContentArgs {
-  changeFocusCallback: any
+interface VotingContractsArgs {
+  focusOnDetails: FocusOnDetailsVarAndSetter
 }
 
-const VotingContracts: React.FC<ContentArgs> = ({ changeFocusCallback }: ContentArgs) => {
+const VotingContracts: React.FC<VotingContractsArgs> = ({ focusOnDetails }: VotingContractsArgs) => {
 
   const { account, chainId, library } = useWeb3React<ethers.providers.Web3Provider>()
 
+  const changeFocusInMain = () => {
+    focusOnDetails.flag ? focusOnDetails.setter(false) : focusOnDetails.setter(true)
+  }
 
   const votingContractInfos: Array<{ [key: string]: any }> = []
   if (chainId) {
@@ -62,7 +66,7 @@ const VotingContracts: React.FC<ContentArgs> = ({ changeFocusCallback }: Content
     return (
       <StandardReadWriteCard
         key={"VotingContract" + i}
-        callback={changeFocusCallback}
+        callback={changeFocusInMain}
         buttonType="secondary"
         cardText={entry.info.address}
         cardTitle={title}
@@ -72,6 +76,8 @@ const VotingContracts: React.FC<ContentArgs> = ({ changeFocusCallback }: Content
       />
     )
   })
+
+
 
 
   return (

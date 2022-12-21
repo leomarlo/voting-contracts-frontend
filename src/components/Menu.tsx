@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { SelectedPage } from "../types/components"
+import { SelectedPageOptions } from "../types/components"
 
 interface MenuArgs {
   setSelectedPage: any

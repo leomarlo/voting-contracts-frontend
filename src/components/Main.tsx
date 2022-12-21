@@ -6,7 +6,7 @@ import { Menu } from "./Menu"
 import { Content } from "./Content"
 import { Details } from "./Details"
 import { VotingContracts } from "./VotingContracts"
-import { SelectedPage } from "../types/components"
+import { SelectedPageOptions, FocusOnDetailsVarAndSetter } from "../types/components"
 
 const mainStyle = {
   zIndex: 2,
@@ -26,24 +26,29 @@ const menuStyle = {
   paddingBottom: "14px",
 }
 
+
 const Main: React.FC = () => {
 
   const columnWidths = [["col-9", "col-1"], ["col-2", "col-8"]]
-  const [focusOnDetails, setFocusOnDetails] = useState(true)
-
-  const [selectedPage, setSelectedPage] = useState<SelectedPage>("voting-contracts")
-
-  const changeFocusInMain = () => {
-    focusOnDetails ? setFocusOnDetails(false) : setFocusOnDetails(true)
+  const [focusOnDetails, setFocusOnDetails] = useState<boolean>(true)
+  const focusOnDetailsVarAndSetter: FocusOnDetailsVarAndSetter = {
+    flag: focusOnDetails,
+    setter: setFocusOnDetails
   }
+
+  const [selectedPage, setSelectedPage] = useState<SelectedPageOptions>("voting-contracts")
+
+  // const changeFocusInMain = () => {
+  //   focusOnDetails ? setFocusOnDetails(false) : setFocusOnDetails(true)
+  // }
 
   const getContentDOM = () => {
     if (selectedPage == "voting-contracts") {
-      return (<VotingContracts changeFocusCallback={changeFocusInMain} />)
+      return (<VotingContracts focusOnDetails={focusOnDetailsVarAndSetter} />)
     } else if (selectedPage == "voting-playground") {
-      return (<Content changeFocusCallback={changeFocusInMain} />)
+      return (<Content focusOnDetails={focusOnDetailsVarAndSetter} />)
     } else {
-      return (<Content changeFocusCallback={changeFocusInMain} />)
+      return (<Content focusOnDetails={focusOnDetailsVarAndSetter} />)
     }
   }
 
