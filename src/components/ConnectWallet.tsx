@@ -6,7 +6,7 @@ import { useWeb3React } from '@web3-react/core';
 // import { Web3Provider } from '@ethersproject/providers'
 import { InjectedConnector } from '@web3-react/injected-connector';
 import { UserRejectedRequestError } from '@web3-react/injected-connector'
-
+import { supportedChainIds } from '../utils/chains'
 
 const buttonStyle = {
   borderWidth: "3px",
@@ -18,15 +18,7 @@ const buttonStyle = {
 const ConnectWallet = () => {
   const injectedConnector = new InjectedConnector(
     {
-      supportedChainIds: [
-        1, // Mainnet
-        5, // Goerli
-        137, // Polygon
-        1337, // localhost
-        80001, // Mumbai
-        1337802, // Kiln
-        11155111 // Sepolia
-      ]
+      supportedChainIds: supportedChainIds
     }
   );
   const {

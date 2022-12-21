@@ -2,15 +2,23 @@
 
 import React from "react"
 
+import { SelectedPage } from "../types/components"
 
-const Menu: React.FC = () => {
+interface MenuArgs {
+  setSelectedPage: any
+}
+
+const Menu: React.FC<MenuArgs> = ({ setSelectedPage }: MenuArgs) => {
   return (
     <ul>
       <li>Overview</li>
-      <li>Voting Contracts</li>
+      <li onClick={() => {
+        setSelectedPage("voting-contracts")
+        // console.log("You clicked me!")
+      }}>Voting Contracts</li>
       <li>Voting Registry</li>
       <li>Voting Registrar</li>
-      <li>Voting Playground</li>
+      <li onClick={() => { setSelectedPage("voting-playground") }}>Voting Playground</li>
     </ul>
   )
 }
