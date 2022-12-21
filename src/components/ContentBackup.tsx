@@ -4,11 +4,12 @@ import { useWeb3React } from "@web3-react/core"
 import React, { useEffect, useState } from "react"
 import { ethers } from "ethers"
 import { BasicButton } from "./buttons/BasicButton"
-import { StandardReadWriteCard, StandardReadWriteCardArgs } from "./cards/StandardReadWrite"
-
 
 // import * as VotingPlayground from '@leomarlo/voting-registry-contracts/src/examples/playground/Playground.sol/VotingPlayground.json' assert { type: "json" };
 import votingPlaygroundABI from '../abis/VotingPlayground'
+
+console.log(votingPlaygroundABI)
+
 
 const contentStyle = {
   overflowY: "auto",
@@ -21,11 +22,8 @@ const transactStyle = {
   minHeight: "45px"
 }
 
-interface ContentArgs {
-  changeFocusCallback: any
-}
 
-const Content: React.FC<ContentArgs> = ({ changeFocusCallback }: ContentArgs) => {
+const Content: React.FC = () => {
 
   const { account, library } = useWeb3React<ethers.providers.Web3Provider>()
   const [receipt, setReceipt] = useState("");
@@ -70,33 +68,6 @@ const Content: React.FC<ContentArgs> = ({ changeFocusCallback }: ContentArgs) =>
     }
   }
 
-  const allFunctions = votingPlaygroundABI.map((method, i) => {
-    let marginTop = (i == 0) ? 0 : 3
-    let headerColor = ""
-    if (method.stateMutability == 'nonpayable') {
-      headerColor = "warning"
-    } else if (method.stateMutability == "payable") {
-      headerColor = "danger"
-    } else if (method.stateMutability == "view") {
-      headerColor = "secondary"
-    } else {
-      headerColor = "info"
-    }
-    const title = (method.name) ? method.name : "No title"
-    return (
-      <StandardReadWriteCard
-        callback={changeFocusCallback}
-        buttonType="secondary"
-        cardText={JSON.stringify(method)}
-        cardTitle={title}
-        headerColor={headerColor}
-        marginTop={marginTop}
-        marginBottom={0}
-      />
-    )
-  })
-
-
   return (
     <div style={{
       overflowY: "auto",
@@ -110,22 +81,9 @@ const Content: React.FC<ContentArgs> = ({ changeFocusCallback }: ContentArgs) =>
       {receipt}
       <br />
       <BasicButton buttonType="info" text="Display Current Balance" onClick={() => displayBalanceFunction('current')} />
-      <br />
       <BasicButton buttonType="danger" text="Clear Balance" onClick={() => displayBalanceFunction('clear')} />
-      <br />
       <BasicButton buttonType="success" text="Mint 1.5 Eth" onClick={mint} />
-      <br /><br /><br />
-      {/* <StandardReadWriteCard
-        callback={changeFocusCallback}
-        buttonType="secondary"
-        cardText="Hello"
-        cardTitle="Some Title"
-        headerColor="warning"
-        marginTop={3}
-        marginBottom={2}
-      /> */}
-      <br />
-      {allFunctions}
+
     </div>
   )
 }

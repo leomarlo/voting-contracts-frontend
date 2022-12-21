@@ -9,7 +9,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 const navbarStyle = {
   zIndex: 2,
   width: "100vw",
-  height: "5%",
+  height: "10%",
   top: 0,
   left: 0,
   paddingTop: "1vh",
