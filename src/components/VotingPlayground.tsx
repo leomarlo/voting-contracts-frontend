@@ -4,12 +4,11 @@ import { useWeb3React } from "@web3-react/core"
 import React, { useEffect, useState } from "react"
 import { ethers } from "ethers"
 import { BasicButton } from "./buttons/BasicButton"
-import { StandardReadWriteCard, StandardReadWriteCardArgs, FormReadWriteCard } from "./cards/StandardReadWrite"
+import { StandardReadWriteCard, FormReadWriteCardTest, FormReadWriteCard } from "./cards/StandardReadWrite"
 import { FocusOnDetailsVarAndSetter } from "../types/components"
 import { SimpleForm } from "./forms/SimpleForm"
 import { reverseResolveChainId } from "../utils/chains"
-import { InputDataOneEntry } from "../types/components"
-
+import { InputDataOneEntry, FormSubmissionCallbackType } from "../types/components"
 // import * as VotingPlayground from '@leomarlo/voting-registry-contracts/src/examples/playground/Playground.sol/VotingPlayground.json' assert { type: "json" };
 import votingPlaygroundABI from '../abis/VotingPlayground'
 import deploymentInfo from "../deployment/deploymentInfo.json"
@@ -35,7 +34,6 @@ interface InterfaceAndContract {
   contract: any
 }
 
-type FormValues = Array<Array<string>>
 
 const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }: VotingPlaygroundArgs) => {
 
@@ -45,12 +43,6 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
   const changeFocusInMain = () => {
     focusOnDetails.flag ? focusOnDetails.setter(false) : focusOnDetails.setter(true)
   }
-
-  // const votingContractInfos: Array<{ [key: string]: any }> = []
-  // if (chainId) {
-  //   let networkName = reverseResolveChainId[chainId as number] as string
-  //   let deploymentInfoNetwork = deploymentInfo[networkName as keyof typeof deploymentInfo]
-  // keyof typeof deploymentInfo
 
 
   // if ("PlainMajorityVoteWithQuorum" in deploymentInfoNetwork) {
@@ -73,11 +65,16 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
     return result
   }
 
-  const testCallback = (ind: number) => {
-    console.log('Halooe', ind)
-    // for (let n = 0; n < formValues[ind].length; n++) {
-    //   console.log(`The ${n}-th value of field ${ind} is ${formValues[ind][n]}`)
+  // make a callbackType
+  const testCallback: FormSubmissionCallbackType = (values: Array<string>, contractFragment: string) => {
+    // TODO.. get the playground variable from outside
+    const playground = getVotingPlayground()
+    let encoded = playground.interface.encodeFunctionData(contractFragment, values)
+    // for (let i = 0; i < values.length; i++) {
+
+    //   console.log(`The ${i}-th input is ${values[i]}`)
     // }
+    console.log('encoded', encoded)
   }
 
   const playground = getVotingPlayground()
@@ -91,28 +88,7 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
     let method = votingPlaygroundABI[i]
     if (method.type != "function") continue;
     const title = (method.name) ? method.name : "No title"
-
-
-    let inputNames = method.inputs?.map((e) => (e.name)) as Array<string>
-    let inputTypes = method.inputs?.map((e) => (e.type)) as Array<string>
-    let inputData: Array<InputDataOneEntry> = []
-    let inputValues: Array<string> = []
-    for (let k = 0; k < inputNames.length; k++) inputValues.push("d")
-    // setFormValues([...formValues, inputValues])
-    console.log('The input values are ', inputValues)
-    for (let k = 0; k < inputNames.length; k++) {
-
-      let newInputData: InputDataOneEntry = {
-        label: inputNames[k],
-        specification: inputTypes[k],
-        // value: formValues[i][k],
-        value: inputValues[k]
-      }
-      inputData.push(newInputData)
-    }
-
-
-
+    let inputData = method.inputs?.map((e) => { return { label: e.name, specification: e.type, defaultValue: "" } }) as Array<InputDataOneEntry>
 
     if (votingMethods.includes(method.name as string)) {
 
@@ -120,9 +96,9 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
       let headerColor = (method.stateMutability == 'payable') ? "danger" : "warning"
 
       allVotingMethods.push(
-        <FormReadWriteCard
+        <FormReadWriteCardTest
           identifier={method.name as string}
-          buttonCallback={() => testCallback(i)}
+          buttonCallback={testCallback}
           buttonType="success"
           buttonText="Submit"
           cardBody=""
@@ -147,9 +123,9 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
 
         }
         allMutableMethods.push(
-          <FormReadWriteCard
+          <FormReadWriteCardTest
             identifier={method.name as string}
-            buttonCallback={() => testCallback(i)}
+            buttonCallback={testCallback}
             buttonType="secondary"
             cardBody={interfaceId}
             cardTitle={title}
@@ -165,10 +141,10 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
         let marginTop = (index.readMethods == 0) ? 0 : 3
         let headerColor = 'secondary'
         allReadMethods.push(
-          <FormReadWriteCard
+          <FormReadWriteCardTest
             identifier={method.name as string}
             // buttonCallback={changeFocusInMain}
-            buttonCallback={() => testCallback(i)}
+            buttonCallback={testCallback}
             buttonType="success"
             buttonText="Read"
             cardBody=""

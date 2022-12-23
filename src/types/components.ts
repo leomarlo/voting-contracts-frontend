@@ -8,5 +8,9 @@ export interface FocusOnDetailsVarAndSetter {
 export interface InputDataOneEntry {
   label: string,
   specification: string,
-  value: string
+  defaultValue: string
 }
+
+export type FormSubmissionCallbackType = (
+  inputValues: Array<string>,
+  contractFragment: string) => void;
