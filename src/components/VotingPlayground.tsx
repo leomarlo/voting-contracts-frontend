@@ -42,8 +42,6 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
   const { account, chainId, library } = useWeb3React<ethers.providers.Web3Provider>()
 
 
-  const [formValues, setFormValues] = useState<FormValues>([])
-
   const changeFocusInMain = () => {
     focusOnDetails.flag ? focusOnDetails.setter(false) : focusOnDetails.setter(true)
   }
@@ -99,7 +97,7 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
     let inputTypes = method.inputs?.map((e) => (e.type)) as Array<string>
     let inputData: Array<InputDataOneEntry> = []
     let inputValues: Array<string> = []
-    for (let k = 0; k < inputNames.length; k++) inputValues.push("")
+    for (let k = 0; k < inputNames.length; k++) inputValues.push("d")
     // setFormValues([...formValues, inputValues])
     console.log('The input values are ', inputValues)
     for (let k = 0; k < inputNames.length; k++) {
