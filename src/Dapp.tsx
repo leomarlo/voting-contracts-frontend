@@ -1,6 +1,7 @@
 // Dapp.tsx
 
 import React from "react";
+import { Web3Provider } from "@ethersproject/providers";
 import { Web3ReactProvider } from '@web3-react/core';
 import { ethers } from 'ethers'
 import { ConnectWallet } from './components/ConnectWallet'
@@ -11,7 +12,9 @@ import { Main } from './components/Main'
 import "./styles/main.css";
 
 function getLibrary(provider: any) {
-  return new ethers.providers.Web3Provider(provider);
+  const library = new Web3Provider(provider, "any");
+  library.pollingInterval = 12000;
+  return library;
 }
 
 

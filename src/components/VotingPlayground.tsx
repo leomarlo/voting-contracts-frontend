@@ -1,6 +1,7 @@
 // Content.tsx
 
 import { useWeb3React } from "@web3-react/core"
+import { Web3Provider } from "@ethersproject/providers";
 import React, { useEffect, useState } from "react"
 import { ethers } from "ethers"
 import { BasicButton } from "./buttons/BasicButton"
@@ -13,6 +14,9 @@ import { InputDataOneEntry, FormSubmissionCallbackType } from "../types/componen
 import votingPlaygroundABI from '../abis/VotingPlayground'
 import deploymentInfo from "../deployment/deploymentInfo.json"
 import VotingPlayground from "../abis/VotingPlayground"
+
+// const { useProvider } = hooks
+// const provider = useProvider()
 
 const contentStyle = {
   overflowY: "auto",
@@ -30,14 +34,14 @@ interface VotingPlaygroundArgs {
 }
 
 interface InterfaceAndContract {
-  interface: any,
-  contract: any
+  interface: ethers.utils.Interface,
+  contract: ethers.Contract
 }
 
 
 const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }: VotingPlaygroundArgs) => {
 
-  const { account, chainId, library } = useWeb3React<ethers.providers.Web3Provider>()
+  const { account, chainId, library } = useWeb3React<Web3Provider>()
 
 
   const changeFocusInMain = () => {
@@ -49,7 +53,7 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
   const getVotingPlayground = () => {
     let result: InterfaceAndContract = {
       interface: new ethers.utils.Interface(votingPlaygroundABI),
-      contract: null
+      contract: new ethers.Contract(ethers.constants.AddressZero, [])
     }
     if (chainId) {
       let networkName = reverseResolveChainId[chainId as number] as string
@@ -66,15 +70,43 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
   }
 
   // make a callbackType
-  const testCallback: FormSubmissionCallbackType = (values: Array<string>, contractFragment: string) => {
+  const testCallback: FormSubmissionCallbackType = async (values: Array<string>, contractFragment: string) => {
     // TODO.. get the playground variable from outside
-    const playground = getVotingPlayground()
-    let encoded = playground.interface.encodeFunctionData(contractFragment, values)
+    // const playground = getVotingPlayground()
+    // let encoded = playground.interface.encodeFunctionData(contractFragment, values)
     // for (let i = 0; i < values.length; i++) {
+    let networkName = reverseResolveChainId[chainId as number] as string
+    let deploymentInfoNetwork = deploymentInfo[networkName as keyof typeof deploymentInfo]
+    if (library && account) {
+      let signer = library.getSigner(account)
+      let anotherSigner = signer.provider.getSigner()
+      console.log('signer', signer)
+      console.log('another signer', anotherSigner)
 
+    } else {
+      console.log('Library is undefined')
+    }
+    return null
+
+
+    if ("VotingPlayground" in deploymentInfoNetwork) {
+      let contractName = "VotingPlayground"
+      let contractAddress = deploymentInfoNetwork[contractName as keyof typeof deploymentInfoNetwork].address
+      // let contract = new ethers.Contract(contractAddress, votingPlaygroundABI, signer)
+      // let tx = await contract['badges'](0)
+      // let tx = await contract.connect(signer).badges("0")
+      // console.log('tx', tx)
+    }
+    // console.log('values', values)
+
+    //  provider.call({
+    //   to: playground.contract.address,
+    //   data: encoded
+    // })
     //   console.log(`The ${i}-th input is ${values[i]}`)
     // }
-    console.log('encoded', encoded)
+    // console.log('encoded', encoded)
+    // console.log('tx', tx)
   }
 
   const playground = getVotingPlayground()

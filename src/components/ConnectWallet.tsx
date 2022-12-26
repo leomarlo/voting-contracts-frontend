@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { ethers } from 'ethers';
 import { useWeb3React } from '@web3-react/core';
-// import { Web3Provider } from '@ethersproject/providers'
+import { Web3Provider } from '@ethersproject/providers'
 import { InjectedConnector } from '@web3-react/injected-connector';
 import { UserRejectedRequestError } from '@web3-react/injected-connector'
 import { supportedChainIds } from '../utils/chains'
@@ -29,9 +29,10 @@ const ConnectWallet = () => {
     active,
     setError,
     library
-  } = useWeb3React<ethers.providers.Web3Provider>();
+  } = useWeb3React<Web3Provider>();
 
-  const onClickConnect = () => {
+  const onClickConnect = async () => {
+    let { provider } = await injectedConnector.activate();
     activate(injectedConnector, (error) => {
       if (error instanceof UserRejectedRequestError) {
         // ignore user rejected error
