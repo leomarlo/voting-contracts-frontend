@@ -7,6 +7,8 @@ import { Web3Provider } from '@ethersproject/providers'
 import { InjectedConnector } from '@web3-react/injected-connector';
 import { UserRejectedRequestError } from '@web3-react/injected-connector'
 import { supportedChainIds } from '../utils/chains'
+import type { MetaMask } from "@web3-react/metamask"
+import VotingPlayground from "../abis/VotingPlayground"
 
 const buttonStyle = {
   borderWidth: "3px",
@@ -31,8 +33,22 @@ const ConnectWallet = () => {
     library
   } = useWeb3React<Web3Provider>();
 
+
   const onClickConnect = async () => {
-    let { provider } = await injectedConnector.activate();
+    // let res = await injectedConnector.activate();
+    // let signer = await provider.getSigner()
+    // console.log(res)
+    // activate(injectedConnector)
+
+    // if (window.ethereum) {
+    //   const provider = new ethers.providers.Web3Provider(window.ethereum);
+    //   const signer = provider.getSigner()
+    //   const address = await signer.getAddress()
+    //   let pg = new ethers.Contract('0x4BF632e194D498F733d256AB13183004eA428788', VotingPlayground, signer)
+    //   let votingRegistry = await pg.VOTING_REGISTRY()
+    //   console.log('votingRegistry', votingRegistry) //ethers.utils.formatEther(await signer.getBalance()))
+    // }
+
     activate(injectedConnector, (error) => {
       if (error instanceof UserRejectedRequestError) {
         // ignore user rejected error

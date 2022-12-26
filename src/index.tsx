@@ -11,6 +11,6 @@ const root: HTMLElement = document.getElementById("root") as HTMLElement;
 
 createRoot(root).render(
   <React.StrictMode>
-    <Index2 />
+    <Dapp />
   </React.StrictMode>
 );

@@ -2,15 +2,15 @@
   "localhost": {
     "MajorityVoteWithNFTQuorumAndOptionalDVGuard": {
       "address": "0x07803d183f85D31AbE3D0A7C6f7479A99363a33A",
-      "date": "Mon Dec 19 2022 21:03:41 GMT+0100 (Central European Standard Time)",
-      "gasLimit": 9809525,
+      "date": "Mon Dec 26 2022 20:58:28 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 1961905,
       "path": "src/implementations/votingContracts/SimpleMajorityVote/MajorityVoteWithNFTQuorumAndOptionalDVGuard.sol",
       "arguments": []
     },
     "PlainMajorityVoteWithQuorum": {
       "address": "0xF88fa119a347e2c527f3d0F2Dc154882E2C946CC",
-      "date": "Sun Sep 25 2022 21:16:59 GMT+0200 (Central European Summer Time)",
-      "gasLimit": 7950825,
+      "date": "Mon Dec 26 2022 20:58:29 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 1590165,
       "path": "src/implementations/votingContracts/SimpleMajorityVote/PlainMajorityVoteWithQuorum.sol",
       "arguments": []
     },
@@ -21,28 +21,32 @@
     },
     "VotingRegistry": {
       "address": "0xA94A3572343f0684FB2C3584853992D47e4F9261",
-      "date": "Mon Dec 19 2022 21:03:41 GMT+0100 (Central European Standard Time)",
-      "gasLimit": 3008655,
+      "date": "Mon Dec 26 2022 20:58:28 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 601731,
       "path": "src/registration/registry/VotingRegistry.sol",
       "arguments": [
         "\"0x9452d78d\""
       ]
     },
     "VotingPlayground": {
-      "address": "0x993A54b4447f5FD7401ACDCD67Bb53f932409410",
-      "path": "src/examples/playground/Playground.sol",
+      "address": "0x4BF632e194D498F733d256AB13183004eA428788",
+      "date": "Mon Dec 26 2022 20:58:30 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 7032127,
+      "path": "src/implementations/registration/RegistrarAndResolver.sol",
       "arguments": [
-        "\"0xb7f03999c29AdBeB4E740766f0796b5849ac97c0\"",
+        "\"0xA94A3572343f0684FB2C3584853992D47e4F9261\"",
         "[\"0x018f92cafb\",\"0x01a0e8ca96\",\"0x0132d7b3b9\",\"0x01fabfdb1d\",\"0x01a6629027\",\"0x01ef4a45a1\",\"0x011d0a40c9\",\"0x003d974365\",\"0x00c519fdc5\",\"0x005698d48a\",\"0x00ec9ad785\",\"0x004dea6274\",\"0x003048760d\",\"0x00df610fcd\",\"0x0091fae275\",\"0x00ca32d40b\",\"0x00204d899d\",\"0x00458b8f48\"]",
-        "[\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x4761D0E6241E5edc1061c9A475248934e78B4A2D\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x4761D0E6241E5edc1061c9A475248934e78B4A2D\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\",\"0x35Bc5c81BF67e8B1f6e1965574a9589a1bDAe335\"]",
+        "[\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0xF88fa119a347e2c527f3d0F2Dc154882E2C946CC\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0xF88fa119a347e2c527f3d0F2Dc154882E2C946CC\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\",\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\"]",
         "[120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120,120]",
-        "[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]",
+        "[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]",
         "[true,true,true,true,true,true,true,true,true,false,true,true,false,true,true,true,true,true]",
         "\"0xf81c46173674ae2c93082a62e206c813fef8df55ccebfdd187e6daa0895a7530\""
       ]
     },
     "PlaygroundVotingBadge": {
-      "address": "0x7d45fb30a90C1D4Ee82076dCB980Ca33041Ed385",
+      "address": "0xf66b1a67700E5186827975A09f1ad6Efa067C477",
+      "date": "Mon Dec 26 2022 20:58:30 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 3271033,
       "path": "src/examples/playground/VotingBadge.sol",
       "arguments": [
         "\"Playground Voting Badge\"",
@@ -51,8 +55,8 @@
     },
     "ControllableRegistrar": {
       "address": "0x23b8F911CD48dAecE4963f2CD40C56De2237A3B0",
-      "date": "Mon Dec 19 2022 21:03:41 GMT+0100 (Central European Standard Time)",
-      "gasLimit": 16584885,
+      "date": "Mon Dec 26 2022 20:58:29 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 3316977,
       "path": "src/implementations/registration/RegistrarAndResolver.sol",
       "arguments": [
         "\"0x07803d183f85D31AbE3D0A7C6f7479A99363a33A\"",
@@ -64,9 +68,16 @@
     },
     "ResolverWithControl": {
       "address": "0x346082DB603d864a2a1ab16B13125bB6B16c7e03",
-      "date": "Mon Dec 19 2022 21:03:41 GMT+0100 (Central European Standard Time)",
-      "gasLimit": 4003535,
+      "date": "Mon Dec 26 2022 20:58:28 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 800707,
       "path": "src/implementations/registration/Resolver.sol",
+      "arguments": []
+    },
+    "DummyToken": {
+      "address": "0x767Fd7cF09ea3f218431a0f48975F14A42FbBEa5",
+      "date": "Mon Dec 26 2022 20:58:30 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 1369130,
+      "path": "src/examples/dummies/ERC20Token.sol",
       "arguments": []
     }
   },

@@ -50,6 +50,15 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
 
 
   // if ("PlainMajorityVoteWithQuorum" in deploymentInfoNetwork) {
+  const getContractAddress = (contractName: string) => {
+    if (chainId) {
+      let networkName = reverseResolveChainId[chainId as number] as string
+      let deploymentInfoNetwork = deploymentInfo[networkName as keyof typeof deploymentInfo]
+      return deploymentInfoNetwork[contractName as keyof typeof deploymentInfoNetwork].address
+    } else {
+      throw "cant find contract address"
+    }
+  }
   const getVotingPlayground = () => {
     let result: InterfaceAndContract = {
       interface: new ethers.utils.Interface(votingPlaygroundABI),
@@ -72,19 +81,22 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
   // make a callbackType
   const testCallback: FormSubmissionCallbackType = async (values: Array<string>, contractFragment: string) => {
     // TODO.. get the playground variable from outside
-    // const playground = getVotingPlayground()
+    const playground = getVotingPlayground()
     // let encoded = playground.interface.encodeFunctionData(contractFragment, values)
     // for (let i = 0; i < values.length; i++) {
     let networkName = reverseResolveChainId[chainId as number] as string
     let deploymentInfoNetwork = deploymentInfo[networkName as keyof typeof deploymentInfo]
-    if (library && account) {
-      let signer = library.getSigner(account)
-      let anotherSigner = signer.provider.getSigner()
-      console.log('signer', signer)
-      console.log('another signer', anotherSigner)
-
+    if (library) {
+      // const provider = new ethers.providers.Web3Provider(window.ethereum);
+      // const signer = provider.getSigner()
+      const otherSigner = library.getSigner()
+      const votingPlaygroundAddress = getContractAddress("VotingPlayground")
+      console.log('address of voting Playground', votingPlaygroundAddress)
+      // const playground = new Contract()
+      let result = await playground.contract[contractFragment](...values)
+      console.log(contractFragment, result)
     } else {
-      console.log('Library is undefined')
+      console.log('window.ethereum is undefined')
     }
     return null
 
