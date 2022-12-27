@@ -1,16 +1,4 @@
-enum Pages {
-  VotingContracts,
-  VotingPlayground,
-  VotingContractIntegration,
-  VotingRegistry,
-  VotingRegistrars,
-  VotingResolvers,
-}
-
-interface PageInfo {
-  key: string,
-  title: string
-}
+import { Pages, PageInfo } from "../types/pages"
 
 const pageInfo: { [name in Pages]: PageInfo } = {
   [Pages.VotingContracts]: { key: 'voting-contracts', title: 'Voting Contracts' },
@@ -21,12 +9,6 @@ const pageInfo: { [name in Pages]: PageInfo } = {
   [Pages.VotingResolvers]: { key: 'voting-resolvers', title: 'Voting Contract Resolvers' }
 }
 
-type PageSetter = (newPage: Pages) => void
-
-
 export {
-  pageInfo,
-  Pages,
-  PageInfo,
-  PageSetter
+  pageInfo
 }

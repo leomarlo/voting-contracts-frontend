@@ -6,7 +6,10 @@ import { ethers } from "ethers"
 import { BasicButton } from "./buttons/BasicButton"
 import { StandardReadWriteCard, StandardReadWriteCardArgs } from "./cards/StandardReadWrite"
 import { reverseResolveChainId } from "../utils/chains"
-import { FocusOnDetailsVarAndSetter } from "../types/components"
+import { DetailsHandling } from "../types/components"
+import { pageInfo } from "../utils/pages"
+import { PageInfo, Pages } from "../types/pages"
+
 
 import majorityVoteWithNft from "../abis/MajorityVoteWithNFTQuorumAndOptionalDVGuard"
 import plainMajority from "../abis/PlainMajorityVoteWithQuorum"
@@ -25,15 +28,15 @@ const transactStyle = {
 }
 
 interface VotingContractsArgs {
-  focusOnDetails: FocusOnDetailsVarAndSetter
+  detailsHandling: DetailsHandling
 }
 
-const VotingContractsComp: React.FC<VotingContractsArgs> = ({ focusOnDetails }: VotingContractsArgs) => {
+const VotingContractsComp: React.FC<VotingContractsArgs> = ({ detailsHandling }: VotingContractsArgs) => {
 
   const { account, chainId, library } = useWeb3React<ethers.providers.Web3Provider>()
 
   const changeFocusInMain = () => {
-    focusOnDetails.flag ? focusOnDetails.setter(false) : focusOnDetails.setter(true)
+    detailsHandling.focusOnDetails ? detailsHandling.focusOnDetailsSetter(false) : detailsHandling.focusOnDetailsSetter(true)
   }
 
   const votingContractInfos: Array<{ [key: string]: any }> = []

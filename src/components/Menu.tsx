@@ -1,15 +1,17 @@
 // 	Menu.tsx
 
 import React, { CSSProperties, useEffect, useState } from "react"
+import { DetailsHandling } from "../types/components"
+import { pageInfo } from "../utils/pages"
+import { PageInfo, Pages, PageSetter } from "../types/pages"
 
-import { SelectedPageOptions } from "../types/components"
-import { PageInfo, Pages, pageInfo, PageSetter } from "../utils/pages"
 
 interface MenuArgs {
-  changeSelectedPage: PageSetter
+  detailsHandling: DetailsHandling
 }
 
-interface MenuItemArgs extends MenuArgs {
+interface MenuItemArgs {
+  changeSelectedPage: PageSetter,
   item: Pages
 }
 
@@ -48,12 +50,15 @@ const MenuItem: React.FC<MenuItemArgs> = ({ changeSelectedPage, item }: MenuItem
   )
 }
 
-const Menu: React.FC<MenuArgs> = ({ changeSelectedPage }: MenuArgs) => {
+const Menu: React.FC<MenuArgs> = ({ detailsHandling }: MenuArgs) => {
   // const MenuItemsTemp = Object.values(Pages)
   // console.log('Pages', Pages["VotingContractIntegration"])
 
 
-
+  const changeSelectedPage: PageSetter = (newPage: Pages) => {
+    detailsHandling.pageSetter(newPage)
+    detailsHandling.focusOnDetailsSetter(false)
+  }
 
 
   const MenuItems = Object.keys(Pages)

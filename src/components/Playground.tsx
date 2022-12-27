@@ -1,12 +1,11 @@
 import React, { CSSProperties, useRef, useState } from "react";
-import { FocusOnDetailsVarAndSetter } from "../types/components"
-import { PageInfo, Pages, pageInfo, PageSetter } from "../utils/pages"
+import { DetailsHandling } from "../types/components"
+import { pageInfo } from "../utils/pages"
+import { PageInfo, Pages } from "../types/pages"
 
 interface PlaygroundArgs {
-  focusOnDetails: FocusOnDetailsVarAndSetter,
-  changeSelectedPage: PageSetter
+  detailsHandling: DetailsHandling
 }
-
 const linkStyle: CSSProperties = { color: 'lightcoral', fontWeight: "bold" }
 
 {/* <a href="https://github.com/leomarlo/voting-registry-contracts/tree/development/src/examples/integrations"> */ }
@@ -28,7 +27,22 @@ const votingInstanceStyle: CSSProperties = {
   display: "inline-block"
 }
 
-const getCurrentVotingInstances = () => {
+const contentStyle: CSSProperties = {
+  overflowY: "scroll",
+  height: "85%",
+  padding: "35px"
+}
+
+const VoteOnInstance = () => {
+  return (
+    <div>
+      Voting Instance
+    </div>
+  )
+}
+
+const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
+
   const instanceExamples = [
     { address: "0x1234", target: "function(xyz)", deadline: "12:34  12-08-1987" },
     { address: "0x2345", target: "function(abc)", deadline: "12:34  12-08-1987" },
@@ -38,25 +52,65 @@ const getCurrentVotingInstances = () => {
     { address: "0x6789", target: "function(blabla)", deadline: "12:34  12-08-1987" },
     { address: "0x6009", target: "function(blubb)", deadline: "12:34  12-08-1987" }
   ]
-  return (
-    <>
-      {instanceExamples.map((instance) => {
-        return (
-          < div style={votingInstanceStyle} className="card">
-            {instance.address}<br />
-            {instance.target}<br />
-            {instance.deadline}</div>)
-      })}
-    </>)
 
+  const getSelectedInstance = (index?: number) => {
+    if (index) {
+      return instanceExamples.map((inst, i) => { return { index: i, selected: i == index } })
+    } else {
+      return instanceExamples.map((inst, i) => { return { index: i, selected: false } })
+    }
+
+  }
+  const [selectedInstance, setSelectedInstance] = useState(getSelectedInstance())
+
+
+  return (
+    <table className="table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">target function</th>
+          <th scope="col">voting contract</th>
+          <th scope="col">time remaining</th>
+          <th scope="col" style={{ width: "8.33%" }}></th>
+        </tr>
+      </thead>
+      <tbody>
+        {instanceExamples.map((instance, index) => {
+          return (<tr>
+            <th scope="row">{index}</th>
+            <td>{instance.target}</td>
+            <td>{instance.address}</td>
+            <td>{instance.deadline}</td>
+            <td style={{ textAlign: "right" }} className="table-primary">
+              <button
+                onClick={() => {
+                  if (selectedInstance[index].selected) {
+                    setSelectedInstance(getSelectedInstance())
+                    detailsHandling.focusOnDetailsSetter(false)
+                    detailsHandling.detailsSetter(<></>)
+                  } else {
+                    setSelectedInstance(getSelectedInstance(index))
+                    detailsHandling.focusOnDetailsSetter(true)
+                    detailsHandling.detailsSetter(<VoteOnInstance />)
+                  }
+                }}
+                style={{ minWidth: "60%" }} className="btn btn-danger">
+                {selectedInstance[index].selected ? "Less" : "Vote"}
+              </button></td>
+          </tr>)
+        })}
+      </tbody>
+    </table>)
 }
 
 
-const PlaygroundComp: React.FC<PlaygroundArgs> = ({ focusOnDetails, changeSelectedPage }: PlaygroundArgs) => {
+
+const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: PlaygroundArgs) => {
 
   const initialDisplaySection: SectionFlags = {
     [Sections.WhatIsDaoAbout]: true,
-    [Sections.CurrentVotes]: false,
+    [Sections.CurrentVotes]: true,
     [Sections.ViewFunctions]: false
   }
 
@@ -89,7 +143,7 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ focusOnDetails, changeSelect
         </p>
       </>
     ),
-    [Sections.CurrentVotes]: getCurrentVotingInstances(),
+    [Sections.CurrentVotes]: getCurrentVotingInstances(detailsHandling),
     [Sections.ViewFunctions]: (
       <div key="hallo" className="card">
         <div className="card-body"> Functions </div>
@@ -115,13 +169,13 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ focusOnDetails, changeSelect
 
   let thisPageInfo: PageInfo = pageInfo[Pages.VotingPlayground]
   return (
-    <div key={thisPageInfo.key}>
+    <div key={thisPageInfo.key} style={contentStyle}>
       <h3>{thisPageInfo.title}</h3>
       <p>
         This app exposes an example of a
         voting contract integration.
         Any contract that may call voting contracts directly (as part of its interface) or indirectly (as part of a private or internal function) is a voting contract integration.
-        <span style={{ marginLeft: "3px", ...linkStyle }} onClick={(e) => { changeSelectedPage(Pages.VotingContractIntegration) }}>
+        <span style={{ marginLeft: "3px", ...linkStyle }} onClick={(e) => { detailsHandling.pageSetter(Pages.VotingContractIntegration) }}>
           Please read detailed information here!
         </span><br /><br />
 

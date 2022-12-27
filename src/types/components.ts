@@ -1,8 +1,12 @@
-export type SelectedPageOptions = "voting-contracts" | "voting-playground"
+import { PageSetter } from "./pages"
 
-export interface FocusOnDetailsVarAndSetter {
-  flag: boolean,
-  setter: (arg: boolean) => void
+export type ComponentSetter = (component: JSX.Element) => void
+
+export interface DetailsHandling {
+  focusOnDetails: boolean,
+  focusOnDetailsSetter: (arg: boolean) => void,
+  detailsSetter: ComponentSetter
+  pageSetter: PageSetter
 }
 
 export interface InputDataOneEntry {

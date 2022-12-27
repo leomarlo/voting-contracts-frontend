@@ -5,7 +5,9 @@ import React, { useEffect, useState } from "react"
 import { ethers } from "ethers"
 import { BasicButton } from "./buttons/BasicButton"
 import { StandardReadWriteCard, StandardReadWriteCardArgs } from "./cards/StandardReadWrite"
-import { FocusOnDetailsVarAndSetter } from "../types/components"
+import { DetailsHandling } from "../types/components"
+import { pageInfo } from "../utils/pages"
+import { PageInfo, Pages } from "../types/pages"
 
 
 // import * as VotingPlayground from '@leomarlo/voting-registry-contracts/src/examples/playground/Playground.sol/VotingPlayground.json' assert { type: "json" };
@@ -23,10 +25,10 @@ const transactStyle = {
 }
 
 interface ContentArgs {
-  focusOnDetails: FocusOnDetailsVarAndSetter
+  detailsHandling: DetailsHandling
 }
 
-const Content: React.FC<ContentArgs> = ({ focusOnDetails }: ContentArgs) => {
+const Content: React.FC<ContentArgs> = ({ detailsHandling }: ContentArgs) => {
 
   const { account, library } = useWeb3React<ethers.providers.Web3Provider>()
   const [receipt, setReceipt] = useState("");
@@ -45,7 +47,7 @@ const Content: React.FC<ContentArgs> = ({ focusOnDetails }: ContentArgs) => {
   ]
 
   const changeFocusInMain = () => {
-    focusOnDetails.flag ? focusOnDetails.setter(false) : focusOnDetails.setter(true)
+    detailsHandling.focusOnDetails ? detailsHandling.focusOnDetailsSetter(false) : detailsHandling.focusOnDetailsSetter(true)
   }
 
 

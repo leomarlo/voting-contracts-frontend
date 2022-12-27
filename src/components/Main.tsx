@@ -6,10 +6,11 @@ import { Menu } from "./Menu"
 import { Content } from "./Content"
 import { Details } from "./Details"
 import { VotingContractsComp } from "./VotingContracts"
-import { SelectedPageOptions, FocusOnDetailsVarAndSetter } from "../types/components"
+import { DetailsHandling, ComponentSetter } from "../types/components"
 import { PlaygroundComp } from "./Playground"
 import { VotingIntegrationComp } from "./VotingIntegration"
-import { PageInfo, Pages, pageInfo, PageSetter } from "../utils/pages"
+import { pageInfo } from "../utils/pages"
+import { Pages, PageSetter } from "../types/pages"
 
 const mainStyle = {
   zIndex: 2,
@@ -34,30 +35,31 @@ const Main: React.FC = () => {
 
   const columnWidths = [["col-9", "col-1"], ["col-2", "col-8"]]
   const [focusOnDetails, setFocusOnDetails] = useState<boolean>(false)
-  const focusOnDetailsVarAndSetter: FocusOnDetailsVarAndSetter = {
-    flag: focusOnDetails,
-    setter: setFocusOnDetails
-  }
-
   const [selectedPage, setSelectedPage] = useState<Pages>(Pages.VotingPlayground)
+  const [detailsPage, setDetailsPage] = useState<JSX.Element>(<></>)
 
-  const changeSelectedPage: PageSetter = (newPage: Pages) => {
-    setSelectedPage(newPage)
-    setFocusOnDetails(false)
+  const detailsHandling: DetailsHandling = {
+    focusOnDetails: focusOnDetails,
+    focusOnDetailsSetter: setFocusOnDetails,
+    detailsSetter: setDetailsPage,
+    pageSetter: setSelectedPage
   }
+
+
   // const changeFocusInMain = () => {
   //   focusOnDetails ? setFocusOnDetails(false) : setFocusOnDetails(true)
   // }
 
+
   const getContentDOM = () => {
     if (selectedPage == Pages.VotingContracts) {
-      return (<VotingContractsComp focusOnDetails={focusOnDetailsVarAndSetter} />)
+      return (<VotingContractsComp detailsHandling={detailsHandling} />)
     } else if (selectedPage == Pages.VotingPlayground) {
-      return (<PlaygroundComp focusOnDetails={focusOnDetailsVarAndSetter} changeSelectedPage={changeSelectedPage} />)
+      return (<PlaygroundComp detailsHandling={detailsHandling} />)
     } else if (selectedPage == Pages.VotingContractIntegration) {
-      return (<VotingIntegrationComp focusOnDetails={focusOnDetailsVarAndSetter} />)
+      return (<VotingIntegrationComp detailsHandling={detailsHandling} />)
     } else {
-      return (<Content focusOnDetails={focusOnDetailsVarAndSetter} />)
+      return (<Content detailsHandling={detailsHandling} />)
     }
   }
 
@@ -65,7 +67,7 @@ const Main: React.FC = () => {
     <div className="row absolute padded1" style={mainStyle}>
       <div className="col-2" style={menuStyle}>
         <div style={{ minHeight: "200px" }}></div>
-        <Menu changeSelectedPage={changeSelectedPage} />
+        <Menu detailsHandling={detailsHandling} />
       </div>
       <div className={focusOnDetails ? columnWidths[1][0] : columnWidths[0][0]}>
         {getContentDOM()}
@@ -74,7 +76,8 @@ const Main: React.FC = () => {
       <div className={focusOnDetails ? columnWidths[1][1] : columnWidths[0][1]} >
         {/* <div className="col-1"> */}
         {/* {endlesstext} */}
-        <Details />
+        {/* <Details content={details} /> */}
+        {detailsPage}
       </div>
     </div >
   )
