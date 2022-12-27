@@ -14,7 +14,8 @@ import { InputDataOneEntry, FormSubmissionCallbackType } from "../types/componen
 import votingPlaygroundABI from '../abis/VotingPlayground'
 import deploymentInfo from "../deployment/deploymentInfo.json"
 import VotingPlayground from "../abis/VotingPlayground"
-
+import axios from 'axios'
+const URL = "https://raw.githubusercontent.com/leomarlo/voting-registry-contracts/development/src/votingContractStandard/IVotingContract.sol"
 // const { useProvider } = hooks
 // const provider = useProvider()
 
@@ -43,6 +44,12 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
 
   const { account, chainId, library } = useWeb3React<Web3Provider>()
 
+  const tesst = async () => {
+    let res = await axios.get(URL)
+    console.log(res.data)
+  }
+  tesst()
+  // axios.get(URL).then(res => console.log(res.data)).catch(err => console.log('error', err))
 
   const changeFocusInMain = () => {
     focusOnDetails.flag ? focusOnDetails.setter(false) : focusOnDetails.setter(true)

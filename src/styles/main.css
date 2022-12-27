@@ -23,6 +23,15 @@ body {
 }
 
 
+span {
+  cursor: pointer;
+}
+
+div>p {
+  text-align: justify;
+  ;
+}
+
 
 /* width */
 ::-webkit-scrollbar {

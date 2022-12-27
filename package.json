@@ -65,6 +65,7 @@
     }
   },
   "dependencies": {
-    "@leomarlo/voting-registry-contracts": "^2.1.5"
+    "@leomarlo/voting-registry-contracts": "^2.1.5",
+    "axios": "^1.2.1"
   }
 }

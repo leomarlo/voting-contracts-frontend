@@ -24,7 +24,7 @@ const Details: React.FC = () => {
       overflowY: "auto",
       height: "800px"
     }}>
-      <h1>Details</h1>
+
     </div>
   )
 }
