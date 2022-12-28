@@ -1,6 +1,6 @@
 // Main.tsx
 
-import React, { useState } from "react"
+import React, { useState, CSSProperties } from "react"
 
 import { Menu } from "./Menu"
 import { Content } from "./Content"
@@ -14,12 +14,14 @@ import { Pages, PageSetter } from "../types/pages"
 
 const mainStyle = {
   zIndex: 2,
+  margin: "0px",
   width: "100vw",
-  minHeight: "90%",
-  maxHeight: "90%",
-  top: "10%",
+  minHeight: "90vh",
+  maxHeight: "90vh",
+  top: "10vh",
   overflow: "hidden",
-  left: 0
+  left: 0,
+  // backgroundColor: "coral"
 }
 
 const menuStyle = {
@@ -31,9 +33,16 @@ const menuStyle = {
 }
 
 
+const contentContainerStyle: CSSProperties = {
+  minHeight: "90vh",
+  height: "90vh",
+  maxHeight: "90vh",
+  // backgroundColor: "greenyellow"
+}
+
 const Main: React.FC = () => {
 
-  const columnWidths = [["col-9", "col-1"], ["col-2", "col-8"]]
+  const columnWidths = [["col-9", "col-1"], ["col-5", "col-5"]]
   const [focusOnDetails, setFocusOnDetails] = useState<boolean>(false)
   const [selectedPage, setSelectedPage] = useState<Pages>(Pages.VotingPlayground)
   const [detailsPage, setDetailsPage] = useState<JSX.Element>(<></>)
@@ -69,7 +78,7 @@ const Main: React.FC = () => {
         <div style={{ minHeight: "200px" }}></div>
         <Menu detailsHandling={detailsHandling} />
       </div>
-      <div className={focusOnDetails ? columnWidths[1][0] : columnWidths[0][0]}>
+      <div className={focusOnDetails ? columnWidths[1][0] : columnWidths[0][0]} style={contentContainerStyle} >
         {getContentDOM()}
 
       </div>

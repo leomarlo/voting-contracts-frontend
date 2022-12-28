@@ -55,8 +55,8 @@ div>p {
   background: #000000;
 }
 
-li::before {
+/* li::before {
   content: '▶';
   position: absolute;
   left: 0;
-}
+} */

@@ -58,6 +58,7 @@ const Menu: React.FC<MenuArgs> = ({ detailsHandling }: MenuArgs) => {
   const changeSelectedPage: PageSetter = (newPage: Pages) => {
     detailsHandling.pageSetter(newPage)
     detailsHandling.focusOnDetailsSetter(false)
+    detailsHandling.detailsSetter(<></>)
   }
 
 

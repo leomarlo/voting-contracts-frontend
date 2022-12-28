@@ -1,14 +1,17 @@
-import React, { CSSProperties, useRef, useState } from "react";
+import React, { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { useWeb3React } from "@web3-react/core"
+import { Web3Provider } from "@ethersproject/providers";
 import { DetailsHandling } from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
+import { getPlaygroundContract } from "../utils/web3"
+import { formatAddress } from '../utils/format'
+import { ethers } from 'ethers'
 
 interface PlaygroundArgs {
   detailsHandling: DetailsHandling
 }
 const linkStyle: CSSProperties = { color: 'lightcoral', fontWeight: "bold" }
-
-{/* <a href="https://github.com/leomarlo/voting-registry-contracts/tree/development/src/examples/integrations"> */ }
 
 enum Sections {
   WhatIsDaoAbout = "What is this DAO all about?",
@@ -29,40 +32,108 @@ const votingInstanceStyle: CSSProperties = {
 
 const contentStyle: CSSProperties = {
   overflowY: "scroll",
-  height: "85%",
-  padding: "35px"
+  minHeight: "100%",
+  height: "100%",
+  maxHeight: "100%",
+  padding: "35px",
+  // backgroundColor: "yellow",
+  margin: "0px"
 }
 
-const VoteOnInstance = () => {
+interface VoteOnInstanceArgs {
+  index: number
+}
+
+const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ index }: VoteOnInstanceArgs) => {
   return (
     <div>
-      Voting Instance
+      {"Voting Instance number " + index.toString()}
     </div>
   )
 }
 
+enum InstanceStatus {
+  Active = "active",
+  Inactive = "inactive",
+  Implement = "implement"
+}
+
+const getPlaygroundInstances = async (chainId: number, signer: ethers.providers.JsonRpcSigner) => {
+  let playground = (await getPlaygroundContract(chainId)).connect(signer)
+  let instances = []
+  let exceedsLength = false
+  let i = 0
+  while (!exceedsLength) {
+    try {
+      let inst = await playground.instances(i)
+      instances.push(inst)
+      i += 1
+    }
+    catch (err) {
+      exceedsLength = true
+    }
+  }
+  return instances
+}
+
+interface instanceInfoOnChain {
+  identifier: ethers.BigNumber,
+  votingContract: string,
+  status: InstanceStatus
+}
+
+interface instanceDisplayInfo {
+  index: number,
+  selected: boolean
+}
+
+
+
+const setPlaygroundInstances = async (
+  chainId: number,
+  signer: ethers.providers.JsonRpcSigner,
+  setInstance: Dispatch<SetStateAction<Array<instanceInfoOnChain>>>,
+  setInstanceInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>) => {
+
+  let infos = await getPlaygroundInstances(chainId, signer)
+  setInstance(infos.map((inst) => { return { identifier: inst.identifier, votingContract: inst.votingContract, status: InstanceStatus.Active } }))
+  setInstanceInfo(infos.map((_, i) => { return { index: i, selected: false } }))
+}
+
 const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
-  const instanceExamples = [
-    { address: "0x1234", target: "function(xyz)", deadline: "12:34  12-08-1987" },
-    { address: "0x2345", target: "function(abc)", deadline: "12:34  12-08-1987" },
-    { address: "0x3456", target: "function(djdjdj)", deadline: "12:34  12-08-1987" },
-    { address: "0x4567", target: "function(ss,ss,dd)", deadline: "12:34  12-08-1987" },
-    { address: "0x5678", target: "function(huups)", deadline: "12:34  12-08-1987" },
-    { address: "0x6789", target: "function(blabla)", deadline: "12:34  12-08-1987" },
-    { address: "0x6009", target: "function(blubb)", deadline: "12:34  12-08-1987" }
-  ]
+  const { account, chainId, library } = useWeb3React<Web3Provider>()
+
+  const [instances, setInstances] = useState([] as instanceInfoOnChain[])
+  const [selectedInstance, setSelectedInstance] = useState([] as instanceDisplayInfo[])
+
+  // TODO: remove
+
+  useEffect(() => {
+    if (chainId && library) {
+      setPlaygroundInstances(chainId, library.getSigner(), setInstances, setSelectedInstance)
+    }
+    console.log('We are in use effects')
+  }, [chainId]);
+
+
+
+
+
+  const statusColor = {
+    [InstanceStatus.Active]: "success",
+    [InstanceStatus.Inactive]: "secondary",
+    [InstanceStatus.Implement]: "danger"
+  }
 
   const getSelectedInstance = (index?: number) => {
-    if (index) {
-      return instanceExamples.map((inst, i) => { return { index: i, selected: i == index } })
+    let instances = [...selectedInstance]
+    if (index !== undefined) {
+      return instances.map((inst, i) => { return { index: i, selected: i == index } })
     } else {
-      return instanceExamples.map((inst, i) => { return { index: i, selected: false } })
+      return instances.map((inst, i) => { return { index: i, selected: false } })
     }
-
   }
-  const [selectedInstance, setSelectedInstance] = useState(getSelectedInstance())
-
 
   return (
     <table className="table">
@@ -72,31 +143,41 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
           <th scope="col">target function</th>
           <th scope="col">voting contract</th>
           <th scope="col">time remaining</th>
-          <th scope="col" style={{ width: "8.33%" }}></th>
+          <th scope="col" style={{ width: "8.33%" }}>status</th>
+          <th scope="col" style={{ width: "16.66%" }}></th>
         </tr>
       </thead>
       <tbody>
-        {instanceExamples.map((instance, index) => {
+        {instances.map((instance, index) => {
           return (<tr>
             <th scope="row">{index}</th>
-            <td>{instance.target}</td>
-            <td>{instance.address}</td>
-            <td>{instance.deadline}</td>
-            <td style={{ textAlign: "right" }} className="table-primary">
+            <td>{instance.identifier.toString()}</td>
+            <td>{formatAddress(instance.votingContract)}</td>
+            <td>{formatAddress(instance.votingContract)}</td>
+            <td className={"table-" + statusColor[instance.status]}>{instance.status}</td>
+            <td style={{ textAlign: "right" }}>
               <button
                 onClick={() => {
                   if (selectedInstance[index].selected) {
-                    setSelectedInstance(getSelectedInstance())
+                    let newInstances = getSelectedInstance()
+                    setSelectedInstance(newInstances)
                     detailsHandling.focusOnDetailsSetter(false)
                     detailsHandling.detailsSetter(<></>)
+                    console.log('index', index)
+                    console.log('newInstances', newInstances[index])
                   } else {
-                    setSelectedInstance(getSelectedInstance(index))
+                    let newInstances = getSelectedInstance(index)
+                    setSelectedInstance(newInstances)
                     detailsHandling.focusOnDetailsSetter(true)
-                    detailsHandling.detailsSetter(<VoteOnInstance />)
+                    detailsHandling.detailsSetter(<VoteOnInstance index={index} />)
+                    console.log('index', index)
+                    console.log('newInstances', newInstances[index])
                   }
+
+                  console.log('selected instance', selectedInstance)
                 }}
-                style={{ minWidth: "60%" }} className="btn btn-danger">
-                {selectedInstance[index].selected ? "Less" : "Vote"}
+                style={{ minWidth: "90%" }} className="btn btn-success">
+                {selectedInstance[index].selected ? "Hide" : "Open Instance"}
               </button></td>
           </tr>)
         })}
@@ -151,7 +232,7 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
     )
   }
 
-  const Paragraphs = Object.keys(Sections).map((section) => {
+  const Paragraphs = Object.keys(Sections).filter((v) => isNaN(Number(v))).map((section) => {
     let sc = Sections[section as keyof typeof Sections]
     return (
       <>
@@ -179,7 +260,7 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
           Please read detailed information here!
         </span><br /><br />
 
-        We have created a hypothetical DAO with several functions, that can be triggered:
+        We have created a hypothetical DAO with several functions, each of which can either be triggered:
         <ol>
           <li> by anyone,</li>
           <li> only through a vote,</li>

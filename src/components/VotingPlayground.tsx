@@ -6,22 +6,23 @@ import React, { useEffect, useState } from "react"
 import { ethers } from "ethers"
 import { BasicButton } from "./buttons/BasicButton"
 import { StandardReadWriteCard, FormReadWriteCardTest, FormReadWriteCard } from "./cards/StandardReadWrite"
-import { FocusOnDetailsVarAndSetter } from "../types/components"
+// import { FocusOnDetailsVarAndSetter } from "../types/components"
 import { SimpleForm } from "./forms/SimpleForm"
 import { reverseResolveChainId } from "../utils/chains"
-import { InputDataOneEntry, FormSubmissionCallbackType } from "../types/components"
+import { InputDataOneEntry, FormSubmissionCallbackType, DetailsHandling } from "../types/components"
 // import * as VotingPlayground from '@leomarlo/voting-registry-contracts/src/examples/playground/Playground.sol/VotingPlayground.json' assert { type: "json" };
 import votingPlaygroundABI from '../abis/VotingPlayground'
 import deploymentInfo from "../deployment/deploymentInfo.json"
 import VotingPlayground from "../abis/VotingPlayground"
 import axios from 'axios'
 const URL = "https://raw.githubusercontent.com/leomarlo/voting-registry-contracts/development/src/votingContractStandard/IVotingContract.sol"
+
 // const { useProvider } = hooks
 // const provider = useProvider()
 
 const contentStyle = {
   overflowY: "auto",
-  height: "90%"
+  height: "70%"
 }
 
 const transactStyle = {
@@ -31,7 +32,7 @@ const transactStyle = {
 }
 
 interface VotingPlaygroundArgs {
-  focusOnDetails: FocusOnDetailsVarAndSetter
+  detailHandling: DetailsHandling
 }
 
 interface InterfaceAndContract {
@@ -40,7 +41,7 @@ interface InterfaceAndContract {
 }
 
 
-const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }: VotingPlaygroundArgs) => {
+const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ detailHandling }: VotingPlaygroundArgs) => {
 
   const { account, chainId, library } = useWeb3React<Web3Provider>()
 
@@ -52,7 +53,7 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ focusOnDetails }
   // axios.get(URL).then(res => console.log(res.data)).catch(err => console.log('error', err))
 
   const changeFocusInMain = () => {
-    focusOnDetails.flag ? focusOnDetails.setter(false) : focusOnDetails.setter(true)
+    detailHandling.focusOnDetails ? detailHandling.focusOnDetailsSetter(false) : detailHandling.focusOnDetailsSetter(true)
   }
 
 
