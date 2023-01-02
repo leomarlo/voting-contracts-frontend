@@ -111,6 +111,7 @@ interface TokenInfo {
   name: string,
   symbol: string,
   address: string,
+  balance: ethers.BigNumber | undefined
   interfaces: ErcInterfaceFlags
 }
 enum DoubleVotingGuard { none, onSender, onVotingData }
@@ -171,6 +172,8 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
 
   console.log('identifier', identifier)
 
+  let signerAddress = await signer.getAddress()
+
   let votingInstanceExternalInfo = {} as VotingInstanceExternalInfo
   let message = ''
   // instantiate contract 
@@ -205,8 +208,15 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
       let tokenInterface = new ethers.Contract(tokenAddress, TOKEN_WITH_ERC165_INTERFACE, signer)
       let name = (await tokenInterface.name())
       let symbol = (await tokenInterface.symbol())
+      // TODO: Decimals!!!
+      try {
+        tokenInfo.balance = (await tokenInterface.decimals()).toNumber()
+      } catch (err) { console.log('getStatus', err); message += 'No Decimals method found!\n' }
+      // let decimals = (await tokenInterface.decimals())
+      let balance = (await tokenInterface.balanceOf(signerAddress))
       tokenInfo.name = name
       tokenInfo.symbol = symbol
+      tokenInfo.balance = balance
       let interfaces = {} as ErcInterfaceFlags
       try {
         let supports_erc165 = await tokenInterface.supportsInterface(ERC165_ID)

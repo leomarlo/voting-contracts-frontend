@@ -1,3 +1,4 @@
+import React from "react"
 import { PageSetter } from "./pages"
 
 export type ComponentSetter = (component: JSX.Element) => void
@@ -18,3 +19,14 @@ export interface InputDataOneEntry {
 export type FormSubmissionCallbackType = (
   inputValues: Array<string>,
   contractFragment: string) => void;
+
+export interface InitialNewInstanceValues {
+  targetId: string,
+  votingContract: string,
+  deadline: number | ""
+}
+
+export interface StartNewInstanceArgs {
+  initialNewInstanceValues: InitialNewInstanceValues,
+  initialNewInstanceValuesSetter: React.Dispatch<React.SetStateAction<InitialNewInstanceValues>>
+}

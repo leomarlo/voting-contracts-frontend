@@ -1,10 +1,15 @@
 import React, { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { useWeb3React } from "@web3-react/core"
 import { Web3Provider } from "@ethersproject/providers";
-import { DetailsHandling } from "../types/components"
+import { DetailsHandling, InitialNewInstanceValues } from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
 import { VoteOnInstance } from "./VoteOnInstance"
+import { StartNewInstance } from "./StartNewInstance"
+import {
+  FormPrimitive,
+  SimpleFormArgs
+} from "./forms/SimpleForm"
 import {
   getPlaygroundContract,
   getVotingInstanceExternalInfo,
@@ -20,6 +25,7 @@ import { ethers } from 'ethers'
 interface PlaygroundArgs {
   detailsHandling: DetailsHandling
 }
+
 const linkStyle: CSSProperties = { color: 'lightcoral', fontWeight: "bold" }
 
 enum Sections {
@@ -102,12 +108,18 @@ const setPlaygroundInstances = async (
 }
 
 
+
 const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
   const { chainId, library } = useWeb3React<Web3Provider>()
 
-  const [instances, setInstances] = useState([] as VotingInstanceInfo[])
-  const [selectedInstance, setSelectedInstance] = useState([] as instanceDisplayInfo[])
+  const [instances, setInstances] = useState<Array<VotingInstanceInfo>>([] as VotingInstanceInfo[])
+  const [selectedInstance, setSelectedInstance] = useState<Array<instanceDisplayInfo>>([] as instanceDisplayInfo[])
+  const [initialNewInstanceValues, setInitialNewInstanceValues] = useState<InitialNewInstanceValues>({
+    targetId: "",
+    votingContract: "",
+    deadline: ""
+  })
 
   useEffect(() => {
     console.log('instances are', instances)
@@ -146,19 +158,81 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
     }
   }
 
+  const handleInitialInstanceFormChange = (key: string, event: any) => {
+    let data = { ...initialNewInstanceValues };
+    data[key as keyof typeof data] = event.target.value
+    setInitialNewInstanceValues(data)
+  }
+
+  const getLocaleFromDeadlineInSeconds = () => {
+    let currentTimeInMilliseconds = Math.floor(Date.now())
+    if (initialNewInstanceValues.deadline == "") {
+      return ""
+    } else {
+      return (new Date(currentTimeInMilliseconds + initialNewInstanceValues.deadline * 1000)).toLocaleString()
+    }
+  }
+  const ColWidths = {
+    hash: "4%",
+    targetid: "16%",
+    votingContract: "22%",
+    deadlineLocale: "22%",
+    deadlineInSecs: "12%",
+    status: "4%",
+    button: "16%"
+  }
   return (
     <table className="table">
       <thead>
         <tr>
-          <th scope="col">#</th>
-          <th scope="col">target function</th>
-          <th scope="col">voting contract</th>
-          <th scope="col">time remaining</th>
-          <th scope="col" style={{ width: "8.33%" }}>status</th>
-          <th scope="col" style={{ width: "16.66%" }}></th>
+          <th scope="col" style={{ minWidth: ColWidths.hash, width: ColWidths.hash, maxWidth: ColWidths.hash }}>#</th>
+          <th scope="col" style={{ minWidth: ColWidths.targetid, width: ColWidths.targetid, maxWidth: ColWidths.targetid }}>target function</th>
+          <th scope="col" style={{ minWidth: ColWidths.votingContract, width: ColWidths.votingContract, maxWidth: ColWidths.votingContract }}>voting contract</th>
+          <th scope="col" style={{ minWidth: ColWidths.deadlineLocale, width: ColWidths.deadlineLocale, maxWidth: ColWidths.deadlineLocale }}>deadline (locale)</th>
+          <th scope="col" style={{ minWidth: ColWidths.deadlineInSecs, width: ColWidths.deadlineInSecs, maxWidth: ColWidths.deadlineInSecs }}>deadline (sec. remaining)</th>
+          <th scope="col" style={{ minWidth: ColWidths.status, width: ColWidths.status, maxWidth: ColWidths.status }}>status</th>
+          <th scope="col" style={{ minWidth: ColWidths.button, width: ColWidths.button, maxWidth: ColWidths.button }}></th>
         </tr>
       </thead>
       <tbody>
+        {/* <form style={{ margin: "2px" }}> */}
+        <tr style={{ verticalAlign: "middle" }}>
+          <th>new</th>
+          <td><input
+            key="PlaygroundSetInitialTarget"
+            type="text"
+            value={initialNewInstanceValues.targetId}
+            placeholder="function selector"
+            onChange={(event) => handleInitialInstanceFormChange("targetId", event)} /></td>
+          <td><input
+            key="PlaygroundSetInitialVotingContract"
+            type="text"
+            placeholder="contract address"
+            value={initialNewInstanceValues.votingContract}
+            onChange={(event) => handleInitialInstanceFormChange("votingContract", event)} /></td>
+          <td>{getLocaleFromDeadlineInSeconds()}</td>
+          <td><input
+            key="PlaygroundSetInitialDeadline"
+            type="number"
+            placeholder="deadline in seconds"
+            value={initialNewInstanceValues.deadline}
+            onChange={(event) => handleInitialInstanceFormChange("deadline", event)} /></td>
+          <td>0</td>
+          <td style={{ textAlign: "right" }}>
+            <button
+              style={{ minWidth: "90%" }} className="btn btn-success"
+              onClick={() => {
+                // change selection to nothing-is-selected
+                let newInstances = getSelectedInstance()
+                setSelectedInstance(newInstances)
+                // focus on details
+                detailsHandling.focusOnDetailsSetter(true)
+                // open new details page
+                detailsHandling.detailsSetter(<StartNewInstance />)
+              }}>New Instance</button>
+          </td>
+        </tr>
+        {/* </form> */}
         {instances.map((instance, index) => {
           let status = instance.status ? instance.status : ethers.BigNumber.from("0")
           let statusEnum: InstanceStatus
@@ -205,7 +279,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
                   console.log('selected instance', selectedInstance)
                 }}
-                style={{ minWidth: "90%" }} className="btn btn-success">
+                style={{ minWidth: "90%" }} className="btn btn-primary">
                 {selectedInstance[index].selected ? "Hide" : "Open Instance"}
               </button></td>
           </tr>)

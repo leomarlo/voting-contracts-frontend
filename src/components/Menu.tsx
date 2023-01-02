@@ -28,6 +28,13 @@ const menuItemStyle: CSSProperties = {
   fontSize: "14pt"
 }
 
+enum MenuBottomColors {
+  ActiveHover = "#dd8",
+  ActiveNoHover = "#bb8",
+  InactiveHover = "#ddd",
+  InactiveNoHover = "#bbb",
+}
+
 
 
 const MenuItem: React.FC<MenuItemArgs> = ({ changeSelectedPage, item }: MenuItemArgs) => {
