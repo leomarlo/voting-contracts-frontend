@@ -4,7 +4,15 @@ import { Web3Provider } from "@ethersproject/providers";
 import { DetailsHandling } from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
-import { getPlaygroundContract } from "../utils/web3"
+import {
+  getPlaygroundContract,
+  getVotingInstanceExternalInfo,
+  VotingInstanceInfo,
+  getPlaygroundInstancesFromEvents,
+  getGeneralVotingInterface,
+  InstanceInternalInfo,
+  InstanceInternalInfoAndPointer
+} from "../utils/web3"
 import { formatAddress } from '../utils/format'
 import { ethers } from 'ethers'
 
@@ -41,89 +49,137 @@ const contentStyle: CSSProperties = {
 }
 
 interface VoteOnInstanceArgs {
-  index: number
+  instance: VotingInstanceInfo
 }
 
-const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ index }: VoteOnInstanceArgs) => {
+const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance }: VoteOnInstanceArgs) => {
   return (
     <div>
-      {"Voting Instance number " + index.toString()}
+      {"Voting Instance number " + instance.toString()}
     </div>
   )
 }
 
 enum InstanceStatus {
+  Completed = "completed",
+  Failed = "failed",
   Active = "active",
-  Inactive = "inactive",
-  Implement = "implement"
+  Awaitcall = "await implementation"
 }
 
-const getPlaygroundInstances = async (chainId: number, signer: ethers.providers.JsonRpcSigner) => {
-  let playground = (await getPlaygroundContract(chainId)).connect(signer)
-  let instances = []
-  let exceedsLength = false
-  let i = 0
-  while (!exceedsLength) {
-    try {
-      let inst = await playground.instances(i)
-      instances.push(inst)
-      i += 1
-    }
-    catch (err) {
-      exceedsLength = true
-    }
+const getPlaygroundInstancesInternal = async (playground: ethers.Contract) => {
+  let instancesFromEvent: Array<InstanceInternalInfo> = await getPlaygroundInstancesFromEvents(playground)
+  let instances: Array<InstanceInternalInfoAndPointer> = []
+  for (let i = 0; i < instancesFromEvent.length; i++) {
+    let inst = await playground.instances(i)
+    instances.push({ ...instancesFromEvent[i], identifier: inst.identifier, votingContractAddress: inst.votingContract })
   }
   return instances
 }
 
-interface instanceInfoOnChain {
-  identifier: ethers.BigNumber,
-  votingContract: string,
-  status: InstanceStatus
+const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, playground: ethers.Contract) => {
+  let playgroundInternalInstances = await getPlaygroundInstancesInternal(playground)
+  let newInstances: Array<VotingInstanceInfo> = []
+  for (let i = 0; i < playgroundInternalInstances.length; i++) {
+    let inst: InstanceInternalInfoAndPointer = playgroundInternalInstances[i]
+    let newInstance: VotingInstanceInfo = { ...inst, ...await getVotingInstanceExternalInfo(signer, inst.votingContractAddress, await getGeneralVotingInterface(false), inst.identifier) }
+    newInstances.push(newInstance)
+  }
+  return newInstances
 }
+
+const getInstancesFromChainId = async (signer: ethers.providers.JsonRpcSigner, chainId: number) => {
+  let playground = (await getPlaygroundContract(chainId)).connect(signer)
+  console.log('inside Premise')
+  // let newInstances = await getPlaygroundInstances(signer, playground)
+  // setInstances(newInstances)
+  return 1
+}
+
 
 interface instanceDisplayInfo {
   index: number,
   selected: boolean
 }
 
+// const setPlaygroundInstances = async (
+//   chainId: number,
+//   signer: ethers.providers.JsonRpcSigner,
+//   setInstance: Dispatch<SetStateAction<Array<instanceInfoOnChain>>>,
+//   setInstanceInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>) => {
 
 
-const setPlaygroundInstances = async (
-  chainId: number,
-  signer: ethers.providers.JsonRpcSigner,
-  setInstance: Dispatch<SetStateAction<Array<instanceInfoOnChain>>>,
-  setInstanceInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>) => {
+//   let infos = await getPlaygroundInstances(chainId, signer)
+//   setInstance(infos.map((inst) => { return { identifier: inst.identifier, votingContract: inst.votingContract, status: InstanceStatus.Active } }))
+//   setInstanceInfo(infos.map((_, i) => { return { index: i, selected: false } }))
+// }
 
-  let infos = await getPlaygroundInstances(chainId, signer)
-  setInstance(infos.map((inst) => { return { identifier: inst.identifier, votingContract: inst.votingContract, status: InstanceStatus.Active } }))
-  setInstanceInfo(infos.map((_, i) => { return { index: i, selected: false } }))
-}
 
 const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
-  const { account, chainId, library } = useWeb3React<Web3Provider>()
+  const { chainId, library } = useWeb3React<Web3Provider>()
 
-  const [instances, setInstances] = useState([] as instanceInfoOnChain[])
+  const [instances, setInstances] = useState([] as VotingInstanceInfo[])
   const [selectedInstance, setSelectedInstance] = useState([] as instanceDisplayInfo[])
 
-  // TODO: remove
-
+  console.log('chainId is', chainId)
   useEffect(() => {
+    console.log('instances are', instances)
     if (chainId && library) {
-      setPlaygroundInstances(chainId, library.getSigner(), setInstances, setSelectedInstance)
+      console.log('chainId inside useEffect (if) is', chainId)
+      let signer: ethers.providers.JsonRpcSigner = library.getSigner()
+
+
+      enum DoubleVotingGuard { none, onSender, onVotingData }
+
+
+      let newInstances: VotingInstanceInfo[] = [{
+        votingContract: new ethers.Contract(ethers.constants.AddressZero, []),
+        votingContractAddress: "hallo",
+        identifier: ethers.BigNumber.from("0"),
+        deadline: "",
+        ttl: 1,
+        status: "",
+        token: {
+          name: "",
+          symbol: "string",
+          address: "string",
+          interfaces: {
+            erc165: false,
+            erc721: false,
+            erc1155: false
+          }
+        },
+        doubleVotingGuard: DoubleVotingGuard.none,
+        quorum: { value: "", inUnitsOf: "string" },
+        index: 1,
+        sender: "",
+        target: {
+          id: "1",
+          name: "",
+          isFunction: true
+        }
+      }]
+      // console.log('we call getInstances')
+      // getInstancesFromChainId(signer, chainId) //.then((a) => { console.log('inside get method') })
+      setInstances(newInstances)
+      console.log('we called getInstances')
+
+
+    } else {
+      setInstances([] as VotingInstanceInfo[])
+      console.log('chainId inside useEffect (else) is', chainId)
     }
-    console.log('We are in use effects')
-  }, [chainId]);
 
 
-
+  }, [chainId, library])
 
 
   const statusColor = {
-    [InstanceStatus.Active]: "success",
-    [InstanceStatus.Inactive]: "secondary",
-    [InstanceStatus.Implement]: "danger"
+    [InstanceStatus.Active]: "primary",
+    [InstanceStatus.Completed]: "success",
+    [InstanceStatus.Failed]: "danger",
+    [InstanceStatus.Awaitcall]: "warning"
   }
 
   const getSelectedInstance = (index?: number) => {
@@ -149,27 +205,45 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
       </thead>
       <tbody>
         {instances.map((instance, index) => {
+          let status = instance.status ? instance.status : ethers.BigNumber.from("0")
+          let statusEnum: InstanceStatus
+          if (status == ethers.BigNumber.from("1")) {
+            statusEnum = InstanceStatus.Completed
+          } else if (status == ethers.BigNumber.from("2")) {
+            statusEnum = InstanceStatus.Failed
+          } else if (status == ethers.BigNumber.from("4")) {
+            statusEnum = InstanceStatus.Awaitcall
+          } else {
+            statusEnum = InstanceStatus.Active
+          }
           return (<tr>
             <th scope="row">{index}</th>
-            <td>{instance.identifier.toString()}</td>
-            <td>{formatAddress(instance.votingContract)}</td>
-            <td>{formatAddress(instance.votingContract)}</td>
-            <td className={"table-" + statusColor[instance.status]}>{instance.status}</td>
+            <td>{(instance.target.isFunction ? instance.target.name : "") + ` (${instance.target.id})`}</td>
+            <td>{formatAddress(instance.votingContractAddress)}</td>
+            <td>{instance.deadline ? instance.deadline : ""}</td>
+            <td>{instance.ttl}</td>
+            <td className={"table-" + statusColor[statusEnum]}>{instance.status}</td>
             <td style={{ textAlign: "right" }}>
               <button
                 onClick={() => {
                   if (selectedInstance[index].selected) {
+                    // change selection to nothing-is-selected
                     let newInstances = getSelectedInstance()
                     setSelectedInstance(newInstances)
+                    // close the details window
                     detailsHandling.focusOnDetailsSetter(false)
                     detailsHandling.detailsSetter(<></>)
+                    // log some infos
                     console.log('index', index)
                     console.log('newInstances', newInstances[index])
                   } else {
+                    // change selection to index-is-selected
                     let newInstances = getSelectedInstance(index)
                     setSelectedInstance(newInstances)
+                    // open the details window
                     detailsHandling.focusOnDetailsSetter(true)
-                    detailsHandling.detailsSetter(<VoteOnInstance index={index} />)
+                    detailsHandling.detailsSetter(<VoteOnInstance instance={instance} />)
+                    // log some infos
                     console.log('index', index)
                     console.log('newInstances', newInstances[index])
                   }
@@ -195,8 +269,27 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
     [Sections.ViewFunctions]: false
   }
 
+  const { chainId, library } = useWeb3React<Web3Provider>()
+
   const [displaySection, setDisplaySection] = useState<SectionFlags>(initialDisplaySection)
-  const changeCounter = useRef<string>("change")
+  const [playgroundContract, setPlaygroundContract] = useState<ethers.Contract>({} as ethers.Contract)
+
+
+
+  useEffect(() => {
+    if (chainId && library) {
+      getPlaygroundContract(chainId).then(
+        (contractWithoutSigner) => {
+          let signer: ethers.providers.JsonRpcSigner | undefined = library.getSigner()
+          setPlaygroundContract(contractWithoutSigner.connect(signer))
+        }
+      )
+    } else {
+      setPlaygroundContract({} as ethers.Contract)
+    }
+    console.log('We have set the new playground contract')
+
+  }, [chainId, library])
 
   const setDisplayThisSection = (section: Sections, flag: boolean) => {
     let displaySectionTemp = { ...displaySection }
