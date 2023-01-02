@@ -77,7 +77,9 @@ const getPlaygroundInstancesInternal = async (playground: ethers.Contract) => {
   return instances
 }
 
-const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, playground: ethers.Contract) => {
+const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, chainId: number) => {
+  let playground = (await getPlaygroundContract(chainId)).connect(signer)
+  // console.log('chainId', chainId, '\nSigner', await signer.getAddress(), '\nPlayground') //, await playground.VOTING_REGISTRY())
   let playgroundInternalInstances = await getPlaygroundInstancesInternal(playground)
   let newInstances: Array<VotingInstanceInfo> = []
   for (let i = 0; i < playgroundInternalInstances.length; i++) {
@@ -88,31 +90,23 @@ const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, pl
   return newInstances
 }
 
-const getInstancesFromChainId = async (signer: ethers.providers.JsonRpcSigner, chainId: number) => {
-  let playground = (await getPlaygroundContract(chainId)).connect(signer)
-  console.log('inside Premise')
-  // let newInstances = await getPlaygroundInstances(signer, playground)
-  // setInstances(newInstances)
-  return 1
-}
-
 
 interface instanceDisplayInfo {
   index: number,
   selected: boolean
 }
 
-// const setPlaygroundInstances = async (
-//   chainId: number,
-//   signer: ethers.providers.JsonRpcSigner,
-//   setInstance: Dispatch<SetStateAction<Array<instanceInfoOnChain>>>,
-//   setInstanceInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>) => {
+const setPlaygroundInstances = async (
+  chainId: number,
+  signer: ethers.providers.JsonRpcSigner,
+  setInstances: Dispatch<SetStateAction<Array<VotingInstanceInfo>>>,
+  setInstanceDisplayInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>) => {
 
 
-//   let infos = await getPlaygroundInstances(chainId, signer)
-//   setInstance(infos.map((inst) => { return { identifier: inst.identifier, votingContract: inst.votingContract, status: InstanceStatus.Active } }))
-//   setInstanceInfo(infos.map((_, i) => { return { index: i, selected: false } }))
-// }
+  let infos = await getPlaygroundInstances(signer, chainId)
+  setInstances(infos)
+  setInstanceDisplayInfo(infos.map((_, i) => { return { index: i, selected: false } }))
+}
 
 
 const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
@@ -122,52 +116,54 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
   const [instances, setInstances] = useState([] as VotingInstanceInfo[])
   const [selectedInstance, setSelectedInstance] = useState([] as instanceDisplayInfo[])
 
-  console.log('chainId is', chainId)
   useEffect(() => {
     console.log('instances are', instances)
     if (chainId && library) {
       console.log('chainId inside useEffect (if) is', chainId)
       let signer: ethers.providers.JsonRpcSigner = library.getSigner()
 
+      setPlaygroundInstances(chainId, signer, setInstances, setSelectedInstance)
 
-      enum DoubleVotingGuard { none, onSender, onVotingData }
+      // enum DoubleVotingGuard { none, onSender, onVotingData }
 
 
-      let newInstances: VotingInstanceInfo[] = [{
-        votingContract: new ethers.Contract(ethers.constants.AddressZero, []),
-        votingContractAddress: "hallo",
-        identifier: ethers.BigNumber.from("0"),
-        deadline: "",
-        ttl: 1,
-        status: "",
-        token: {
-          name: "",
-          symbol: "string",
-          address: "string",
-          interfaces: {
-            erc165: false,
-            erc721: false,
-            erc1155: false
-          }
-        },
-        doubleVotingGuard: DoubleVotingGuard.none,
-        quorum: { value: "", inUnitsOf: "string" },
-        index: 1,
-        sender: "",
-        target: {
-          id: "1",
-          name: "",
-          isFunction: true
-        }
-      }]
-      // console.log('we call getInstances')
-      // getInstancesFromChainId(signer, chainId) //.then((a) => { console.log('inside get method') })
-      setInstances(newInstances)
-      console.log('we called getInstances')
+      // let newInstances: VotingInstanceInfo[] = [{
+      //   votingContract: new ethers.Contract(ethers.constants.AddressZero, []),
+      //   votingContractAddress: "hallo",
+      //   identifier: ethers.BigNumber.from("0"),
+      //   deadline: "",
+      //   ttl: 1,
+      //   status: "",
+      //   token: {
+      //     name: "",
+      //     symbol: "string",
+      //     address: "string",
+      //     interfaces: {
+      //       erc165: false,
+      //       erc721: false,
+      //       erc1155: false
+      //     }
+      //   },
+      //   doubleVotingGuard: DoubleVotingGuard.none,
+      //   quorum: { value: "", inUnitsOf: "string" },
+      //   index: 1,
+      //   sender: "",
+      //   target: {
+      //     id: "1",
+      //     name: "",
+      //     isFunction: true
+      //   }
+      // }]
+      // // console.log('we call getInstances')
+      // // getInstancesFromChainId(signer, chainId) //.then((a) => { console.log('inside get method') })
+      // setInstances(newInstances)
+      // setSelectedInstance(newInstances.map((inst, i) => { return { index: i, selected: false } }))
+      // console.log('we called getInstances')
 
 
     } else {
       setInstances([] as VotingInstanceInfo[])
+      setSelectedInstance([] as instanceDisplayInfo[])
       console.log('chainId inside useEffect (else) is', chainId)
     }
 
@@ -276,20 +272,20 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
 
 
 
-  useEffect(() => {
-    if (chainId && library) {
-      getPlaygroundContract(chainId).then(
-        (contractWithoutSigner) => {
-          let signer: ethers.providers.JsonRpcSigner | undefined = library.getSigner()
-          setPlaygroundContract(contractWithoutSigner.connect(signer))
-        }
-      )
-    } else {
-      setPlaygroundContract({} as ethers.Contract)
-    }
-    console.log('We have set the new playground contract')
+  // useEffect(() => {
+  //   if (chainId && library) {
+  //     getPlaygroundContract(chainId).then(
+  //       (contractWithoutSigner) => {
+  //         let signer: ethers.providers.JsonRpcSigner | undefined = library.getSigner()
+  //         setPlaygroundContract(contractWithoutSigner.connect(signer))
+  //       }
+  //     )
+  //   } else {
+  //     setPlaygroundContract({} as ethers.Contract)
+  //   }
+  //   console.log('We have set the new playground contract')
 
-  }, [chainId, library])
+  // }, [chainId, library])
 
   const setDisplayThisSection = (section: Sections, flag: boolean) => {
     let displaySectionTemp = { ...displaySection }
