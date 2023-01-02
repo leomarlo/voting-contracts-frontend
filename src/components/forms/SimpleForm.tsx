@@ -44,5 +44,6 @@ const SimpleForm: React.FC<SimpleFormArgs> = ({ label, key, value, defaultValue,
 
 export {
   SimpleForm,
-  FormPrimitive
+  FormPrimitive,
+  SimpleFormArgs
 }

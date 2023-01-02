@@ -127,9 +127,10 @@ interface VotingInstanceExternalInfo {
 }
 
 interface TargetInterface {
-  id: string | undefined,
+  id: string,
   name?: string,
-  isFunction: boolean
+  isFunction: boolean,
+  calldata: string
 }
 
 interface InstanceInternalInfo {
@@ -152,13 +153,14 @@ const getPlaygroundInstancesFromEvents = async (playgroundContract: ethers.Contr
   // console.log(eventsRes)
   const events = await playgroundContract.queryFilter(flt)
   return events.map((e) => {
-    let targetId: string = e.args?.target
+    let calldata: string = e.args?.target
     let target: TargetInterface = {
-      id: targetId,
-      isFunction: targetId.length < (2 + 2 * 4)
+      id: calldata.slice(0, Math.min(calldata.length, (2 + 2 * 4))),
+      isFunction: calldata.length >= (2 + 2 * 4),
+      calldata: calldata
     }
     if (target.isFunction) {
-      target.name = playgroundContract.interface.getFunction(targetId).name
+      target.name = playgroundContract.interface.getFunction(target.id).name
     }
     let instanceInternalInfo: InstanceInternalInfo = { index: e.args?.index, sender: e.args?.sender, target: target }
     return instanceInternalInfo
@@ -250,10 +252,13 @@ export {
   getPlaygroundContract,
   getVotingInstanceExternalInfo,
   getPlaygroundInstancesFromEvents,
+  ErcInterfaceFlags,
+  TokenInfo,
   TargetInterface,
   VotingInstanceInfo,
   InstancePointer,
   InstanceInternalInfo,
   VotingInstanceExternalInfo,
-  InstanceInternalInfoAndPointer
+  InstanceInternalInfoAndPointer,
+  DoubleVotingGuard
 }

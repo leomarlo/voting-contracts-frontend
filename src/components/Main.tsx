@@ -42,7 +42,7 @@ const contentContainerStyle: CSSProperties = {
 
 const Main: React.FC = () => {
 
-  const columnWidths = [["col-9", "col-1"], ["col-5", "col-5"]]
+  const columnWidths = [["col-9", "col-1"], ["col-4", "col-6"]]
   const [focusOnDetails, setFocusOnDetails] = useState<boolean>(false)
   const [selectedPage, setSelectedPage] = useState<Pages>(Pages.VotingPlayground)
   const [detailsPage, setDetailsPage] = useState<JSX.Element>(<></>)
@@ -53,11 +53,6 @@ const Main: React.FC = () => {
     detailsSetter: setDetailsPage,
     pageSetter: setSelectedPage
   }
-
-
-  // const changeFocusInMain = () => {
-  //   focusOnDetails ? setFocusOnDetails(false) : setFocusOnDetails(true)
-  // }
 
 
   const getContentDOM = () => {

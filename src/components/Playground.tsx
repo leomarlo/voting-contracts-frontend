@@ -4,6 +4,7 @@ import { Web3Provider } from "@ethersproject/providers";
 import { DetailsHandling } from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
+import { VoteOnInstance } from "./VoteOnInstance"
 import {
   getPlaygroundContract,
   getVotingInstanceExternalInfo,
@@ -48,17 +49,9 @@ const contentStyle: CSSProperties = {
   margin: "0px"
 }
 
-interface VoteOnInstanceArgs {
-  instance: VotingInstanceInfo
-}
 
-const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance }: VoteOnInstanceArgs) => {
-  return (
-    <div>
-      {"Voting Instance number " + instance.toString()}
-    </div>
-  )
-}
+
+
 
 enum InstanceStatus {
   Completed = "completed",
@@ -124,43 +117,6 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
       setPlaygroundInstances(chainId, signer, setInstances, setSelectedInstance)
 
-      // enum DoubleVotingGuard { none, onSender, onVotingData }
-
-
-      // let newInstances: VotingInstanceInfo[] = [{
-      //   votingContract: new ethers.Contract(ethers.constants.AddressZero, []),
-      //   votingContractAddress: "hallo",
-      //   identifier: ethers.BigNumber.from("0"),
-      //   deadline: "",
-      //   ttl: 1,
-      //   status: "",
-      //   token: {
-      //     name: "",
-      //     symbol: "string",
-      //     address: "string",
-      //     interfaces: {
-      //       erc165: false,
-      //       erc721: false,
-      //       erc1155: false
-      //     }
-      //   },
-      //   doubleVotingGuard: DoubleVotingGuard.none,
-      //   quorum: { value: "", inUnitsOf: "string" },
-      //   index: 1,
-      //   sender: "",
-      //   target: {
-      //     id: "1",
-      //     name: "",
-      //     isFunction: true
-      //   }
-      // }]
-      // // console.log('we call getInstances')
-      // // getInstancesFromChainId(signer, chainId) //.then((a) => { console.log('inside get method') })
-      // setInstances(newInstances)
-      // setSelectedInstance(newInstances.map((inst, i) => { return { index: i, selected: false } }))
-      // console.log('we called getInstances')
-
-
     } else {
       setInstances([] as VotingInstanceInfo[])
       setSelectedInstance([] as instanceDisplayInfo[])
@@ -170,6 +126,9 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
   }, [chainId, library])
 
+  const updateInstanceInfos = () => {
+    // TODO: update information about instances, like time to live, without setting selected instances to none again. 
+  }
 
   const statusColor = {
     [InstanceStatus.Active]: "primary",
@@ -268,7 +227,6 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
   const { chainId, library } = useWeb3React<Web3Provider>()
 
   const [displaySection, setDisplaySection] = useState<SectionFlags>(initialDisplaySection)
-  const [playgroundContract, setPlaygroundContract] = useState<ethers.Contract>({} as ethers.Contract)
 
 
 
