@@ -1,7 +1,7 @@
 import React, { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { useWeb3React } from "@web3-react/core"
 import { Web3Provider } from "@ethersproject/providers";
-import { DetailsHandling, InitialNewInstanceValues } from "../types/components"
+import { DetailsHandling, InitialNewInstanceValues, StartNewInstanceArgs } from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
 import { VoteOnInstance } from "./VoteOnInstance"
@@ -19,6 +19,7 @@ import {
   InstanceInternalInfo,
   InstanceInternalInfoAndPointer
 } from "../utils/web3"
+
 import { formatAddress } from '../utils/format'
 import { ethers } from 'ethers'
 
@@ -228,7 +229,12 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                 // focus on details
                 detailsHandling.focusOnDetailsSetter(true)
                 // open new details page
-                detailsHandling.detailsSetter(<StartNewInstance />)
+
+                detailsHandling.detailsSetter(
+                  <StartNewInstance
+                    detailsHandling={detailsHandling}
+                    initialNewInstanceValues={initialNewInstanceValues}
+                    initialNewInstanceValuesSetter={setInitialNewInstanceValues} />)
               }}>New Instance</button>
           </td>
         </tr>

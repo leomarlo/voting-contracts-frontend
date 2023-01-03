@@ -27,6 +27,7 @@ export interface InitialNewInstanceValues {
 }
 
 export interface StartNewInstanceArgs {
+  detailsHandling: DetailsHandling,
   initialNewInstanceValues: InitialNewInstanceValues,
   initialNewInstanceValuesSetter: React.Dispatch<React.SetStateAction<InitialNewInstanceValues>>
 }
