@@ -77,8 +77,7 @@ const getPlaygroundInstancesInternal = async (playground: ethers.Contract) => {
   return instances
 }
 
-const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, chainId: number) => {
-  let playground = (await getPlaygroundContract(chainId)).connect(signer)
+const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, playground: ethers.Contract) => {
   // console.log('chainId', chainId, '\nSigner', await signer.getAddress(), '\nPlayground') //, await playground.VOTING_REGISTRY())
   let playgroundInternalInstances = await getPlaygroundInstancesInternal(playground)
   let newInstances: Array<VotingInstanceInfo> = []
@@ -100,12 +99,14 @@ const setPlaygroundInstances = async (
   chainId: number,
   signer: ethers.providers.JsonRpcSigner,
   setInstances: Dispatch<SetStateAction<Array<VotingInstanceInfo>>>,
-  setInstanceDisplayInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>) => {
+  setInstanceDisplayInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>,
+  setPlayground: Dispatch<SetStateAction<ethers.Contract>>) => {
 
-
-  let infos = await getPlaygroundInstances(signer, chainId)
+  let playgroundContract = (await getPlaygroundContract(chainId)).connect(signer)
+  let infos = await getPlaygroundInstances(signer, playgroundContract)
   setInstances(infos)
   setInstanceDisplayInfo(infos.map((_, i) => { return { index: i, selected: false } }))
+  setPlayground(playgroundContract)
 }
 
 
@@ -114,6 +115,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
   const { chainId, library } = useWeb3React<Web3Provider>()
 
+  const [playground, setPlayground] = useState<ethers.Contract>(new ethers.Contract(ethers.constants.AddressZero, []))
   const [instances, setInstances] = useState<Array<VotingInstanceInfo>>([] as VotingInstanceInfo[])
   const [selectedInstance, setSelectedInstance] = useState<Array<instanceDisplayInfo>>([] as instanceDisplayInfo[])
   const [initialNewInstanceValues, setInitialNewInstanceValues] = useState<InitialNewInstanceValues>({
@@ -128,11 +130,12 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
       console.log('chainId inside useEffect (if) is', chainId)
       let signer: ethers.providers.JsonRpcSigner = library.getSigner()
 
-      setPlaygroundInstances(chainId, signer, setInstances, setSelectedInstance)
+      setPlaygroundInstances(chainId, signer, setInstances, setSelectedInstance, setPlayground)
 
     } else {
       setInstances([] as VotingInstanceInfo[])
       setSelectedInstance([] as instanceDisplayInfo[])
+      setPlayground(new ethers.Contract(ethers.constants.AddressZero, []))
       console.log('chainId inside useEffect (else) is', chainId)
     }
 
@@ -183,7 +186,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
     button: "16%"
   }
   return (
-    <table className="table">
+    <table style={{ verticalAlign: "middle" }} className="table">
       <thead>
         <tr>
           <th scope="col" style={{ minWidth: ColWidths.hash, width: ColWidths.hash, maxWidth: ColWidths.hash }}>#</th>
@@ -277,7 +280,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                     setSelectedInstance(newInstances)
                     // open the details window
                     detailsHandling.focusOnDetailsSetter(true)
-                    detailsHandling.detailsSetter(<VoteOnInstance instance={instance} />)
+                    detailsHandling.detailsSetter(<VoteOnInstance playground={playground} instance={instance} />)
                     // log some infos
                     console.log('index', index)
                     console.log('newInstances', newInstances[index])

@@ -1,5 +1,7 @@
-import React, { useState } from "react"
-import { ethers } from "ethers"
+import React, { useEffect, useState } from "react"
+import { ethers, ContractReceipt } from "ethers"
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import {
   VotingInstanceInfo,
   DoubleVotingGuard,
@@ -60,40 +62,122 @@ import {
 
 interface VoteOnInstanceArgs {
   instance: VotingInstanceInfo
+  playground: ethers.Contract
 }
 
-const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance }: VoteOnInstanceArgs) => {
-
-  const [votingDataOption, setVotingDataOption] = useState(ethers.constants.HashZero)
-  let calldata = instance.target.calldata
+const formatAsCalldata = (calldata: string, withSelector: boolean = true) => {
   let CalldataRows: Array<string> = []
-  if (instance.target.isFunction) {
-    CalldataRows.push(calldata.slice(0, 10))
-    for (let k = 0; k < Math.ceil((calldata.length - 10) / 64); k++) {
-      CalldataRows.push(calldata.slice(10 + k * (64), Math.min(10 + (k + 1) * 64, calldata.length)))
-    }
+  let selectorOffset: number = withSelector ? 10 : 2
+  // if (withSelector) 
+  CalldataRows.push(calldata.slice(0, selectorOffset))
+  for (let k = 0; k < Math.ceil((calldata.length - selectorOffset) / 64); k++) {
+    CalldataRows.push(calldata.slice(selectorOffset + k * (64), Math.min(selectorOffset + (k + 1) * 64, calldata.length)))
   }
+  return (
+    <div style={{ fontFamily: "monospace" }}>
+      {CalldataRows.map((row) => { return (<>{row}<br /></>) })}
+    </div>
+  )
+}
+const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: VoteOnInstanceArgs) => {
+
+  const [receipt, setReceipt] = useState<ContractReceipt | string>("")
+  const [votingDataOption, setVotingDataOption] = useState(
+    {
+      data: ethers.constants.HashZero,
+      yes: false,
+      no: true
+    }
+  )
+  let calldata = instance.target.calldata
+  let CalldataRows: JSX.Element = formatAsCalldata(calldata)
+
+  useEffect(() => {
+    console.log('votingDataOption', votingDataOption)
+  }, [votingDataOption])
 
   const handleVotingDataSelection = (event: any) => {
+    console.log("handleVotingDataSelection triggered", event.target.value)
+    let tempVotingDataOption = { ...votingDataOption }
     if (event.target.value == "no") {
-      setVotingDataOption(ethers.constants.HashZero)
+      tempVotingDataOption.no = true
+      tempVotingDataOption.yes = false
+      tempVotingDataOption.data = ethers.constants.HashZero
+      setVotingDataOption(tempVotingDataOption)
     } else if (event.target.value == "yes") {
-      setVotingDataOption(ethers.utils.hexZeroPad(ethers.utils.hexlify(1), 32))
+      tempVotingDataOption.no = false
+      tempVotingDataOption.yes = true
+      tempVotingDataOption.data = ethers.utils.hexZeroPad(ethers.utils.hexlify(1), 32)
+      setVotingDataOption(tempVotingDataOption)
     } else {
-      setVotingDataOption(ethers.constants.HashZero)
+      tempVotingDataOption.no = true
+      tempVotingDataOption.yes = false
+      tempVotingDataOption.data = ethers.constants.HashZero
+      setVotingDataOption(tempVotingDataOption)
     }
   }
 
+  const getBalance = (balance: ethers.BigNumber, decimals: ethers.BigNumber | undefined) => {
+    if (decimals === undefined) return balance.toString()
+    return ethers.utils.formatUnits(balance, decimals)
+  }
+
+  const notify = (message: string) => toast(message);
+
+  const submitVoteToChain = async (event: any) => {
+    console.log('event', event)
+    console.log([instance.index, votingDataOption.data])
+    if (instance.doubleVotingGuard === "On Voting Data") {
+      try {
+        let tx = await playground.vote(instance.index, votingDataOption.data)
+        setReceipt(await tx.wait())
+      } catch (err) {
+        setReceipt("")
+        // await notify(JSON.stringify(err))
+      }
+    } else {
+      try {
+        let tx = await instance.votingContract.vote(instance.identifier, votingDataOption.data)
+        setReceipt(await tx.wait())
+      } catch (err) {
+        setReceipt("")
+        // await notify(JSON.stringify(err))
+      }
+    }
+  }
+  const tokenInfo: TokenInfo | undefined = instance.token
+
   return (
-    <div>
+    <div style={{ overflowY: "scroll", maxHeight: "90vh" }}>
       <h3> Details about the Voting Instance</h3>
       <p>
-        This is instance number {`#${instance.index.toString()}`} of the Playground App. It was instantiated by {instance.sender}.
+        This is instance number {`#${instance.index.toString()}`} of the Playground App. <br />It was instantiated by {instance.sender}.
         {/* It targets the function {instance.target.id} {instance.target.isFunction ? `(${instance.target.name})` : ""}. */}
       </p>
       <hr></hr>
-      <table className="table">
+      <div style={{ width: "70%", padding: "4px", display: "inline-block" }}>
+        <div style={{ width: "40%", padding: "4px", display: "inline-block" }}><h4>Vote</h4></div>
+        <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
+          <input onChange={(event) => handleVotingDataSelection(event)} type="radio" id="no" name="votingData" value="no" checked={votingDataOption.no} /> No
+        </div>
+        <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
+          <input onChange={(event) => handleVotingDataSelection(event)} type="radio" id="yes" name="votingData" value="yes" checked={votingDataOption.yes} /> Yes
+        </div>
+      </div>
+      <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
+        <button onClick={(event) => submitVoteToChain(event)} className="btn btn-success" style={{ width: "100%" }}>Submit</button>
+      </div>
+      <hr />
+      <div>{JSON.stringify(receipt)}</div>
+      <hr />
+      <table style={{ verticalAlign: "middle" }} className="table">
         <tbody>
+          <tr>
+            <th scope="col" >Target Function</th>
+            <td>
+              {(instance.target.name ? instance.target.name + ` (${instance.target.id})` : `(${instance.target.id})`)}
+            </td>
+          </tr>
           <tr>
             <th scope="col" >Voting Contract</th>
             <td>
@@ -114,41 +198,96 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance }: VoteOnInstan
           </tr>
 
           <tr>
-            <th scope="col" >Tokend Weighted</th>
+            <th scope="col" >Quorum</th>
             <td>
-              {instance.token ? `${instance.token.name} (${instance.token.symbol})` : "No"}
+              {instance.quorum ? `${instance.quorum.value.toString()} (units: ${instance.quorum.inUnitsOf.toString()})` : "not known"}
             </td>
           </tr>
-          {instance.token ? (<tr>
-            <th scope="col" >Token Address</th>
-            <td>
-              {`${instance.token.address}`}
-            </td>
-          </tr>) : <></>}
           <tr>
-            <th scope="col" >Calldata</th>
+            <th scope="col" >Tokend Weighted</th>
+            <td>
+              {tokenInfo ? `Yes: ${tokenInfo.name} (${tokenInfo.symbol})` : "No"}
+            </td>
+          </tr>
+          {tokenInfo !== undefined ? (
+            <>
+              <tr>
+                <th scope="col" >Token Address</th>
+                <td>
+                  {`${tokenInfo.address}`}
+                </td>
+              </tr>
+              <tr>
+                <th scope="col" >Token Type</th>
+                <td>
+                  {Object.keys(tokenInfo.interfaces).map((k) => { return (<>{k.toString() + ": " + tokenInfo.interfaces[k as keyof ErcInterfaceFlags]}<br /></>) })}
+                </td>
+              </tr>
+              <tr>
+                <th scope="col" >Token Balance</th>
+                <td>
+                  {`${getBalance(tokenInfo.balance, tokenInfo.decimals)}`}
+                </td>
+              </tr>
+            </>
+          ) : <></>}
+          <tr>
+            <th scope="col" >Double Voting Guard</th>
+            <td>
+              {instance.doubleVotingGuard !== undefined ? ((instance.doubleVotingGuard !== "None") ? (`Yes: ` + instance.doubleVotingGuard) : "No") : "No"}
+            </td>
+          </tr>
+          <tr className="table-warning">
+            <th scope="col" style={{ verticalAlign: "top" }}>Execution target</th>
             <td style={{ fontFamily: "monospace", maxHeight: "30px", overflowY: "scroll" }}>
-              {CalldataRows.join(' ')}
+              {instance.targetAddress + (instance.targetAddress == playground.address ? " (Voting Playground)" : "")}
+            </td>
+          </tr>
+          <tr className="table-warning">
+            <th scope="col" style={{ verticalAlign: "top" }}>Execution calldata</th>
+            <td style={{ maxHeight: "30px", overflowY: "scroll" }}>
+              {CalldataRows}
+            </td>
+          </tr>
+          <tr >
+            <th scope="col" style={{ verticalAlign: "top" }}>Result</th>
+            <td style={{ fontFamily: "monospace" }}>
+              {formatAsCalldata(instance.result, false)}
             </td>
           </tr>
         </tbody>
       </table>
       <hr></hr>
-      <h4>Vote</h4>
-      <div onChange={(event) => handleVotingDataSelection(event)} style={{ width: "70%", padding: "4px", display: "inline-block" }}>
-        <div style={{ width: "50%", padding: "4px", display: "inline-block" }}>
-          <input type="radio" id="no" name="votingData" value="no" checked={true} /> No
-        </div>
-        <div style={{ width: "50%", padding: "4px", display: "inline-block" }}>
-          <input type="radio" id="yes" name="votingData" value="yes" /> Yes
-        </div>
-      </div>
-      <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
-        <button onClick={(event) => {
-          console.log('votingDataOption', votingDataOption)
-        }} className="btn btn-success" style={{ width: "100%" }}>Submit</button>
-      </div>
+
+      <table className="table">
+        <tbody>
+          <tr>
+            <th scope="col">
+              {"To  "}
+            </th>
+            <td>
+              {(instance.doubleVotingGuard === "On Voting Data" ? `Playground App (${playground.address})` : `Voting Contract (${instance.votingContractAddress})`)}
+            </td>
+          </tr>
+          <tr>
+            <th scope="col">
+              {"Vote Calldata  "}
+            </th>
+            <td>
+              {/* TODO: Why does the Voting data not update when i change the vote */}
+              {formatAsCalldata(
+                instance.doubleVotingGuard === "On Voting Data" ?
+                  playground.interface.encodeFunctionData("vote", [instance.index, votingDataOption.data]) :
+                  instance.votingContract.interface.encodeFunctionData("vote", [instance.identifier, votingDataOption.data])
+              )
+              }
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+
+
   )
 }
 

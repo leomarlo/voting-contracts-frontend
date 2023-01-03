@@ -28,7 +28,10 @@ const URL_VOTING_INTERFACES = {
 
 const TOKEN_MINIMAL_ABI = [
   "function name() external view returns (string)",
-  "function symbol() external view returns (string)"
+  "function symbol() external view returns (string)",
+  "function decimals() public view returns (uint8)",
+  "function totalSupply() public view returns (uint256)",
+  "function balanceOf(address _owner) public view returns (uint256 balance)"
 ]
 const TOKEN_WITH_ERC165_INTERFACE = TOKEN_MINIMAL_ABI.concat([
   "function supportsInterface(bytes4) external view returns (bool)"
@@ -111,17 +114,20 @@ interface TokenInfo {
   name: string,
   symbol: string,
   address: string,
-  balance: ethers.BigNumber | undefined
+  balance: ethers.BigNumber,
+  decimals: ethers.BigNumber | undefined,
   interfaces: ErcInterfaceFlags
 }
-enum DoubleVotingGuard { none, onSender, onVotingData }
+type DoubleVotingGuard = "None" | "On Sender" | "On Voting Data"
 
 interface VotingInstanceExternalInfo {
   votingContract: ethers.Contract,
+  targetAddress: string | undefined,
   identifier: ethers.BigNumber,
   deadline: string | undefined,
   ttl: number | undefined,
   status: string | undefined,
+  result: string,
   token: TokenInfo | undefined,
   doubleVotingGuard: DoubleVotingGuard | undefined,
   quorum: { value: string, inUnitsOf: string } | undefined
@@ -185,6 +191,8 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
   // identifier
   votingInstanceExternalInfo.identifier = identifier
 
+  // result
+  votingInstanceExternalInfo.result = await votingContract.result(identifier)
   // deadline
   try {
     let deadlineInSeconds = (await votingContract.getDeadline(identifier)).toNumber()
@@ -199,6 +207,11 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
     votingInstanceExternalInfo.status = status.toString()
   } catch (err) { console.log('getStatus', err); message += 'No getStatus method found!\n' }
 
+  // target 
+  try {
+    let targetAddress = (await votingContract.getTarget(identifier))
+    votingInstanceExternalInfo.targetAddress = targetAddress
+  } catch (err) { console.log('getTarget', err); message += 'No getTarget method found!\n' }
   // token
   try {
     let tokenInfo = {} as TokenInfo
@@ -210,7 +223,7 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
       let symbol = (await tokenInterface.symbol())
       // TODO: Decimals!!!
       try {
-        tokenInfo.balance = (await tokenInterface.decimals()).toNumber()
+        tokenInfo.decimals = (await tokenInterface.decimals())
       } catch (err) { console.log('getStatus', err); message += 'No Decimals method found!\n' }
       // let decimals = (await tokenInterface.decimals())
       let balance = (await tokenInterface.balanceOf(signerAddress))
@@ -235,8 +248,8 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
 
   // double voting
   try {
-    let doubleVotingType = (await votingContract.getDoubleVotingGuard(identifier)) as DoubleVotingGuard
-    votingInstanceExternalInfo.doubleVotingGuard = doubleVotingType
+    let doubleVotingType = (await votingContract.getDoubleVotingGuard(identifier))
+    votingInstanceExternalInfo.doubleVotingGuard = doubleVotingType == 0 ? "None" : (doubleVotingType == 1 ? "On Sender" : "On Voting Data")
   } catch (err) { console.log('getDoubleVotingGuard', err); message += 'No getDoubleVotingGuard method found!\n' }
 
   // quorum 
