@@ -266,7 +266,7 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
               {"To  "}
             </th>
             <td>
-              {(instance.doubleVotingGuard === "On Voting Data" ? `Playground App (${playground.address})` : `Voting Contract (${instance.votingContractAddress})`)}
+              {(instance.doubleVotingGuard === "On Voting Data" ? `${playground.address} (Voting Playground)` : `Voting Contract (${instance.votingContractAddress})`)}
             </td>
           </tr>
           <tr>
