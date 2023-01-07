@@ -128,6 +128,7 @@ interface VotingInstanceExternalInfo {
   ttl: number | undefined,
   status: string | undefined,
   result: string,
+  implementingPermitted: boolean | undefined
   token: TokenInfo | undefined,
   doubleVotingGuard: DoubleVotingGuard | undefined,
   quorum: { value: string, inUnitsOf: string } | undefined
@@ -141,7 +142,7 @@ interface TargetInterface {
 }
 
 interface InstanceInternalInfo {
-  index: number,
+  index: ethers.BigNumber,
   sender: string | undefined,
   target: TargetInterface
 }
@@ -212,6 +213,7 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
     let targetAddress = (await votingContract.getTarget(identifier))
     votingInstanceExternalInfo.targetAddress = targetAddress
   } catch (err) { console.log('getTarget', err); message += 'No getTarget method found!\n' }
+
   // token
   try {
     let tokenInfo = {} as TokenInfo
@@ -258,6 +260,11 @@ const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSig
     votingInstanceExternalInfo.quorum = { value: value.toString(), inUnitsOf: inUnitsOf.toString() }
   } catch (err) { console.log('getDoubleVotingGuard', err); message += 'No getQuorum method found!\n' }
 
+  // implementing permitted
+  try {
+    let implementingPermitted = await votingContract.implementingPermitted(identifier)
+    votingInstanceExternalInfo.implementingPermitted = implementingPermitted
+  } catch (err) { console.log('implementingPermitted', err); message += 'No implementingPermitted method found!\n' }
 
   console.log(message)
   return votingInstanceExternalInfo

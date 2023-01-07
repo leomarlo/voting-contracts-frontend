@@ -15,6 +15,7 @@ import Select, { MultiValue } from 'react-select'
 import {
   getPlaygroundContract,
   getVotingInstanceExternalInfo,
+  VotingInstanceExternalInfo,
   VotingInstanceInfo,
   getPlaygroundInstancesFromEvents,
   getGeneralVotingInterface,
@@ -22,7 +23,7 @@ import {
   InstanceInternalInfoAndPointer
 } from "../utils/web3"
 
-import { formatAddress } from '../utils/format'
+import { formatAddress, ellipseString } from '../utils/format'
 import { ethers } from 'ethers'
 
 interface PlaygroundArgs {
@@ -96,10 +97,10 @@ enum VotingStatusImplement {
   failed = "Failed",
   active = "Active",
   awaitcall = "Awaitcall",
-  custom = "Custom"
+  custom = "Custom (>4)"
 }
 
-const votingSTatusIndex: { [status in VotingStatusImplement]: number } = {
+const votingStatusIndex: { [status in VotingStatusImplement]: number } = {
   [VotingStatusImplement.completed]: 1,
   [VotingStatusImplement.failed]: 2,
   [VotingStatusImplement.active]: 3,
@@ -162,8 +163,16 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
   }, [chainId, library])
 
-  const updateInstanceInfos = () => {
+  const updateInstanceInfos = async (index: ethers.BigNumber) => {
+    if (library === undefined) return null
+    let tempInstances = [...instances]
     // TODO: update information about instances, like time to live, without setting selected instances to none again. 
+    for (const instance of instances) {
+      if (instance.index == index) {
+        let signer: ethers.providers.JsonRpcSigner = library.getSigner()
+        let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, instance.votingContractAddress, await getGeneralVotingInterface(false), instance.identifier)
+      }
+    }
   }
 
 
@@ -215,7 +224,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
   const statusColStyle = { minWidth: ColWidths.status, width: ColWidths.status, maxWidth: ColWidths.status }
   const buttonColStyle = { minWidth: ColWidths.button, width: ColWidths.button, maxWidth: ColWidths.button }
 
-  const options = Object.keys(VotingStatusImplement).map((k) => { return { value: k, label: VotingStatusImplement[k as keyof typeof VotingStatusImplement] } })
+  const statusFilterOptions = Object.keys(VotingStatusImplement).map((k) => { return { value: k, label: VotingStatusImplement[k as keyof typeof VotingStatusImplement] } })
 
   const handleDisplayedInstanceChange = (
     event: MultiValue<{
@@ -226,25 +235,29 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
     console.log(event)
     if (typeOfFilterChange == "status") {
-      // let selectedStatusIndices = event.map(({ value, label }) => { return votingSTatusIndex[value as keyof typeof votingSTatusIndex].toString() })
-      if (event.length > 0) {
-        console.log(event[0].value, event[0].label)
-
-      }
-      let selectedStatusIndices = ["3"]
+      let selectedStatusIndices = event.map(({ value, label }) => {
+        return votingStatusIndex[VotingStatusImplement[value as keyof typeof VotingStatusImplement]].toString()
+      })
       let instanceIds: Array<number> = []
-      for (let j = 0; j < instances.length; j++) {
-        let info = instances[j]
-        if (info.status ? selectedStatusIndices.includes(info.status) : false) {
-          instanceIds.push(info.index)
+      if (selectedStatusIndices.length == 0) {
+        instanceIds = instances.map((inst) => { return inst.index.toNumber() })
+      } else {
+        for (let j = 0; j < instances.length; j++) {
+          let info = instances[j]
+          if (info.status) {
+            let inclusionCondition = selectedStatusIndices.includes(info.status)
+            let customCondition = selectedStatusIndices.includes("5") && (!["0", "1", "2", "3", "4"].includes(info.status))
+            if (inclusionCondition || customCondition) {
+              instanceIds.push(info.index.toNumber())
+            }
+          }
         }
       }
-
       setDisplayedInstances(instanceIds)
-
     }
-
   }
+
+
 
   return (
     <div>
@@ -255,7 +268,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
             onChange={(event) => handleDisplayedInstanceChange(event, "status")}
             isMulti
             placeholder="Filter Status"
-            options={options}
+            options={statusFilterOptions}
             className="basic-multi-select"
             classNamePrefix="select"
           ></Select>
@@ -341,7 +354,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                 <td>{formatAddress(instance.votingContractAddress, 7)}</td>
                 <td>{instance.deadline ? instance.deadline : ""}</td>
                 <td>{instance.ttl}</td>
-                <td className={"table-" + statusColor[statusEnum]}>{instance.status}</td>
+                <td className={"table-" + statusColor[statusEnum]}>{instance.status ? ellipseString(instance.status, 3) : ""}</td>
                 <td style={{ textAlign: "right" }}>
                   <button
                     onClick={() => {

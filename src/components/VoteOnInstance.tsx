@@ -147,6 +147,23 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
   }
   const tokenInfo: TokenInfo | undefined = instance.token
 
+  const submisionButtonsEnabled = () => {
+    let implementingPermittedCondition: boolean = instance.implementingPermitted ? instance.implementingPermitted : false
+    let statusCondition = instance.status ? instance.status == "4" : false
+    let noInformationAboutPermissionOrStatus = (instance.status === undefined && instance.implementingPermitted === undefined)
+    let voteCondition = instance.status ? (!["0", "1", "2", "4"].includes(instance.status)) : false
+    return {
+      vote: (
+        noInformationAboutPermissionOrStatus ||
+        voteCondition
+      ),
+      implement: (
+        noInformationAboutPermissionOrStatus ||
+        (implementingPermittedCondition || statusCondition)
+      )
+    }
+  }
+
   return (
     <div style={{ overflowY: "scroll", maxHeight: "90vh" }}>
       <h3> Details about the Voting Instance</h3>
@@ -155,17 +172,26 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
         {/* It targets the function {instance.target.id} {instance.target.isFunction ? `(${instance.target.name})` : ""}. */}
       </p>
       <hr></hr>
-      <div style={{ width: "70%", padding: "4px", display: "inline-block" }}>
-        <div style={{ width: "40%", padding: "4px", display: "inline-block" }}><h4>Vote</h4></div>
-        <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
-          <input onChange={(event) => handleVotingDataSelection(event)} type="radio" id="no" name="votingData" value="no" checked={votingDataOption.no} /> No
+      <div>
+        <div style={{ width: "70%", padding: "4px", display: "inline-block" }}>
+          <div style={{ width: "40%", padding: "4px", display: "inline-block" }}><h4>Vote</h4></div>
+          <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
+            <input onChange={(event) => handleVotingDataSelection(event)} type="radio" id="no" name="votingData" value="no" checked={votingDataOption.no} /> No
+          </div>
+          <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
+            <input onChange={(event) => handleVotingDataSelection(event)} type="radio" id="yes" name="votingData" value="yes" checked={votingDataOption.yes} /> Yes
+          </div>
         </div>
         <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
-          <input onChange={(event) => handleVotingDataSelection(event)} type="radio" id="yes" name="votingData" value="yes" checked={votingDataOption.yes} /> Yes
+          <button onClick={(event) => submitVoteToChain(event)} className="btn btn-success" style={{ width: "100%" }} disabled={!submisionButtonsEnabled().vote}>Submit Vote</button>
         </div>
       </div>
-      <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
-        <button onClick={(event) => submitVoteToChain(event)} className="btn btn-success" style={{ width: "100%" }}>Submit</button>
+      <div>
+        <div style={{ width: "70%", padding: "4px", display: "inline-block" }}></div>
+        <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
+          <button onClick={(event) => console.log(event)} className="btn btn-warning" style={{ width: "100%" }} disabled={!submisionButtonsEnabled().implement}>Implement</button>
+
+        </div>
       </div>
       <hr />
       <div>{JSON.stringify(receipt)}</div>
