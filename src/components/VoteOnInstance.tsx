@@ -266,6 +266,12 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
               {instance.external.doubleVotingGuard !== undefined ? ((instance.external.doubleVotingGuard !== "None") ? (`Yes: ` + instance.external.doubleVotingGuard) : "No") : "No"}
             </td>
           </tr>
+          <tr>
+            <th scope="col" >Implementing Permitted</th>
+            <td>
+              {instance.external.implementingPermitted !== undefined ? (instance.external.implementingPermitted.toString()) : "Not known."}
+            </td>
+          </tr>
           <tr className="table-warning">
             <th scope="col" style={{ verticalAlign: "top" }}>Execution target</th>
             <td style={{ fontFamily: "monospace", maxHeight: "30px", overflowY: "scroll" }}>

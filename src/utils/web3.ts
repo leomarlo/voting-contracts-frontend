@@ -4,6 +4,7 @@ import deploymentInfo from "../deployment/deploymentInfo.json"
 import { hexValue } from "ethers/lib/utils"
 import axios from 'axios'
 import votingContractABI from '../abis/GeneralVotingContract'
+import playgroundABI from '../abis/VotingPlayground'
 
 const PROTOCOL = "https://"
 const BASE_URL = "raw.githubusercontent.com/leomarlo/voting-registry-contracts"
@@ -52,7 +53,7 @@ const getDeploymentInfo = async () => {
 
 const getPlaygroundABI = async () => {
 
-  console.log('inside getPlaygroundABI')
+  // console.log('inside getPlaygroundABI')
   // return []
   return await getABI(URL_PLAYGROUND_ABI)
 }
@@ -75,8 +76,9 @@ const getGeneralVotingInterface = async (fromHttpRequest: boolean) => {
   return votingContractABI
 }
 
-const getPlaygroundInterface = async () => {
-  return await getEthersInterface(URL_PLAYGROUND_ABI)
+const getPlaygroundInterface = async (fromHttpRequest: boolean) => {
+  if (fromHttpRequest) return await getEthersInterface(URL_PLAYGROUND_ABI)
+  return playgroundABI
 }
 
 
@@ -86,9 +88,13 @@ const getContract = async (chainId: number, contractName: string, abi: Array<Obj
   return new ethers.Contract(address, abi)
 }
 
-const getPlaygroundContract = async (chainId: number) => {
+const getPlaygroundContract = async (chainId: number, fromHttpRequest?: boolean) => {
   console.log('inside getPlaygroundContract')
-  return getContract(chainId, "VotingPlayground", await getPlaygroundABI())
+  return getContract(
+    chainId,
+    "VotingPlayground",
+    fromHttpRequest ? await getPlaygroundInterface(fromHttpRequest) : await getPlaygroundABI()
+  )
 }
 
 const getContractAddress = async (chainId: number, contractName: string) => {
@@ -287,6 +293,7 @@ export {
   getPlaygroundABI,
   getGeneralVotingInterface,
   getContractAddress,
+  getPlaygroundInterface,
   getPlaygroundAddress,
   getPlaygroundContract,
   getVotingInstanceExternalInfo,

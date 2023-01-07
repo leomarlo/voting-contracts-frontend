@@ -14,6 +14,7 @@ import {
 import Select, { MultiValue } from 'react-select'
 import {
   getPlaygroundContract,
+  getPlaygroundInterface,
   getVotingInstanceExternalInfo,
   VotingInstanceExternalInfo,
   VotingInstanceInfo,
@@ -25,6 +26,9 @@ import {
 
 import { formatAddress, ellipseString } from '../utils/format'
 import { ethers } from 'ethers'
+
+
+
 
 interface PlaygroundArgs {
   detailsHandling: DetailsHandling
@@ -176,11 +180,44 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
     if (library === undefined) return null
     let tempInstances = [...instances]
     // TODO: update information about instances, like time to live, without setting selected instances to none again. 
-    for (const instance of instances) {
+    for (const instance of tempInstances) {
       if (instance.internal.index == index) {
-        let signer: ethers.providers.JsonRpcSigner = library.getSigner()
-        let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, instance.pointer.votingContractAddress, await getGeneralVotingInterface(false), instance.pointer.identifier)
-        instance.external = externalInfo
+        if (property == "all") {
+          let signer: ethers.providers.JsonRpcSigner = library.getSigner()
+          let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, instance.pointer.votingContractAddress, await getGeneralVotingInterface(false), instance.pointer.identifier)
+          instance.external = externalInfo
+        } else if (property == "implementingPermitted") {
+          console.log('implementing permitted queried')
+          try {
+            let implementingPermitted = await instance.external.votingContract.implementingPermitted(instance.external.identifier)
+            instance.external.implementingPermitted = implementingPermitted
+          } catch (err) {
+            console.log('Cannot call implementingPermitted. Error message: ', err)
+          }
+        }
+      }
+    }
+
+    setInstances(tempInstances)
+  }
+
+  const updateDeadlinesAndImplementingPermitted = async () => {
+    console.log("inside the updateDeadlinesAndImplementingPermitted function")
+    if (library === undefined) return null
+    let tempInstances = [...instances]
+    for (const instance of tempInstances) {
+      try {
+        let deadlineInSeconds = (await instance.external.votingContract.getDeadline(instance.external.identifier)).toNumber()
+        instance.external.deadline = (new Date(deadlineInSeconds * 1000)).toLocaleString();
+        let currentTimeInSeconds = Math.floor(Date.now() / 1000)
+        instance.external.ttl = Math.max(deadlineInSeconds - currentTimeInSeconds, 0)
+      } catch (err) { console.log('No getDeadline method found! Error message: ', err) }
+
+      try {
+        let implementingPermitted = await instance.external.votingContract.implementingPermitted(instance.external.identifier)
+        instance.external.implementingPermitted = implementingPermitted
+      } catch (err) {
+        console.log('Cannot call implementingPermitted. Error message: ', err)
       }
     }
     setInstances(tempInstances)
@@ -370,6 +407,9 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                   <button
                     onClick={() => {
                       if (selectedInstance[displayedIndex].selected) {
+                        // HIDE
+                        updateInstanceInfos(instance.internal.index, "all")
+                        updateDeadlinesAndImplementingPermitted()
                         // change selection to nothing-is-selected
                         let newInstances = getSelectedInstance()
                         setSelectedInstance(newInstances)
@@ -380,6 +420,9 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                         console.log('index', displayedIndex)
                         console.log('newInstances', newInstances[displayedIndex])
                       } else {
+                        // SELECT
+                        updateInstanceInfos(instance.internal.index, "all")
+                        updateDeadlinesAndImplementingPermitted()
                         // change selection to index-is-selected
                         let newInstances = getSelectedInstance(displayedIndex)
                         setSelectedInstance(newInstances)
@@ -405,6 +448,11 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 }
 
 
+interface PlaygroundFunctionInfo {
+  name: string,
+  connected: boolean
+}
+
 
 const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: PlaygroundArgs) => {
 
@@ -418,22 +466,16 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
 
   const [displaySection, setDisplaySection] = useState<SectionFlags>(initialDisplaySection)
 
+  const [playgroundFunctions, setPlaygroundFunctions] = useState<Array<PlaygroundFunctionInfo>>([])
 
 
-  // useEffect(() => {
-  //   if (chainId && library) {
-  //     getPlaygroundContract(chainId).then(
-  //       (contractWithoutSigner) => {
-  //         let signer: ethers.providers.JsonRpcSigner | undefined = library.getSigner()
-  //         setPlaygroundContract(contractWithoutSigner.connect(signer))
-  //       }
-  //     )
-  //   } else {
-  //     setPlaygroundContract({} as ethers.Contract)
-  //   }
-  //   console.log('We have set the new playground contract')
+  useEffect(() => {
+    updatePlaygroundFunctions(setPlaygroundFunctions)
+  }, [])
 
-  // }, [chainId, library])
+  useEffect(() => {
+    updatePlaygroundFunctions(setPlaygroundFunctions)
+  }, [chainId, library])
 
   const setDisplayThisSection = (section: Sections, flag: boolean) => {
     let displaySectionTemp = { ...displaySection }
@@ -443,6 +485,33 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
 
   const changeDisplayThisSection = (section: Sections) => {
     displaySection[section] ? setDisplayThisSection(section, false) : setDisplayThisSection(section, true);
+  }
+
+  const updatePlaygroundFunctions = async (
+    setPlaygroundFunctions: Dispatch<SetStateAction<Array<PlaygroundFunctionInfo>>>
+  ) => {
+    if (chainId && library) {
+      let signer: ethers.providers.JsonRpcSigner = library.getSigner()
+      let playgroundContract = (await getPlaygroundContract(chainId, false)).connect(signer)
+      console.log('functions', playgroundContract.functions)
+      setPlaygroundFunctions(
+        Object.keys(playgroundContract.functions).map((f) => {
+          return {
+            name: f.toString(),
+            connected: true
+          }
+        })
+      )
+    }
+    else {
+      const playgroundInterface = await getPlaygroundInterface(false)
+      console.log('playgroundInterface', playgroundInterface)
+      console.log('typeof playgroundInterface', Object.values(playgroundInterface).map(v => {
+        return v.name
+      }))
+      // setPlaygroundFunctions(playgroundInterface.functions.map(f=>{}))
+      setPlaygroundFunctions([{ name: "bla", connected: false }])
+    }
   }
 
 
@@ -464,7 +533,11 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
     [Sections.CurrentVotes]: getCurrentVotingInstances(detailsHandling),
     [Sections.ViewFunctions]: (
       <div key="hallo" className="card">
-        <div className="card-body"> Functions </div>
+        <div className="card-body">
+          <ul>
+            {playgroundFunctions.map(f => { return <li>{f.name}</li> })}
+          </ul>
+        </div>
       </div>
     )
   }
