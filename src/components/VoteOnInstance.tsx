@@ -62,7 +62,8 @@ import {
 
 interface VoteOnInstanceArgs {
   instance: VotingInstanceInfo
-  playground: ethers.Contract
+  playground: ethers.Contract,
+  updateInstanceInfos: (index: ethers.BigNumber, property: string | undefined) => Promise<null | undefined>
 }
 
 const formatAsCalldata = (calldata: string, withSelector: boolean = true) => {
@@ -79,7 +80,8 @@ const formatAsCalldata = (calldata: string, withSelector: boolean = true) => {
     </div>
   )
 }
-const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: VoteOnInstanceArgs) => {
+
+const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, updateInstanceInfos }: VoteOnInstanceArgs) => {
 
   const [receipt, setReceipt] = useState<ContractReceipt | string>("")
   const [votingDataOption, setVotingDataOption] = useState(
@@ -89,7 +91,7 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
       no: true
     }
   )
-  let calldata = instance.target.calldata
+  let calldata = instance.internal.target.calldata
   let CalldataRows: JSX.Element = formatAsCalldata(calldata)
 
   useEffect(() => {
@@ -126,18 +128,19 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
 
   const submitVoteToChain = async (event: any) => {
     console.log('event', event)
-    console.log([instance.index, votingDataOption.data])
-    if (instance.doubleVotingGuard === "On Voting Data") {
+    console.log([instance.internal.index, votingDataOption.data])
+    if (instance.external.doubleVotingGuard === "On Voting Data") {
       try {
-        let tx = await playground.vote(instance.index, votingDataOption.data)
+        let tx = await playground.vote(instance.internal.index, votingDataOption.data)
         setReceipt(await tx.wait())
+        await updateInstanceInfos(instance.internal.index, "all")
       } catch (err) {
         setReceipt("")
         // await notify(JSON.stringify(err))
       }
     } else {
       try {
-        let tx = await instance.votingContract.vote(instance.identifier, votingDataOption.data)
+        let tx = await instance.external.votingContract.vote(instance.external.identifier, votingDataOption.data)
         setReceipt(await tx.wait())
       } catch (err) {
         setReceipt("")
@@ -145,13 +148,13 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
       }
     }
   }
-  const tokenInfo: TokenInfo | undefined = instance.token
+  const tokenInfo: TokenInfo | undefined = instance.external.token
 
   const submisionButtonsEnabled = () => {
-    let implementingPermittedCondition: boolean = instance.implementingPermitted ? instance.implementingPermitted : false
-    let statusCondition = instance.status ? instance.status == "4" : false
-    let noInformationAboutPermissionOrStatus = (instance.status === undefined && instance.implementingPermitted === undefined)
-    let voteCondition = instance.status ? (!["0", "1", "2", "4"].includes(instance.status)) : false
+    let implementingPermittedCondition: boolean = instance.external.implementingPermitted ? instance.external.implementingPermitted : false
+    let statusCondition = instance.external.status ? instance.external.status == "4" : false
+    let noInformationAboutPermissionOrStatus = (instance.external.status === undefined && instance.external.implementingPermitted === undefined)
+    let voteCondition = instance.external.status ? (!["0", "1", "2", "4"].includes(instance.external.status)) : false
     return {
       vote: (
         noInformationAboutPermissionOrStatus ||
@@ -168,7 +171,7 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
     <div style={{ overflowY: "scroll", maxHeight: "90vh" }}>
       <h3> Details about the Voting Instance</h3>
       <p>
-        This is instance number {`#${instance.index.toString()}`} of the Playground App. <br />It was instantiated by {instance.sender}.
+        This is instance number {`#${instance.internal.index.toString()}`} of the Playground App. <br />It was instantiated by {instance.internal.sender}.
         {/* It targets the function {instance.target.id} {instance.target.isFunction ? `(${instance.target.name})` : ""}. */}
       </p>
       <hr></hr>
@@ -201,32 +204,32 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
           <tr>
             <th scope="col" >Target Function</th>
             <td>
-              {(instance.target.name ? instance.target.name + ` (${instance.target.id})` : `(${instance.target.id})`)}
+              {(instance.internal.target.name ? instance.internal.target.name + ` (${instance.internal.target.id})` : `(${instance.internal.target.id})`)}
             </td>
           </tr>
           <tr>
             <th scope="col" >Voting Contract</th>
             <td>
-              {`${instance.votingContractAddress}`}
+              {`${instance.pointer.votingContractAddress}`}
             </td>
           </tr>
           <tr>
             <th scope="col" >Instance Identifier</th>
             <td>
-              {`#${instance.identifier.toString()}`}
+              {`#${instance.external.identifier.toString()}`}
             </td>
           </tr>
           <tr>
             <th scope="col" >Deadline</th>
             <td>
-              {`${instance.deadline}   (${instance.ttl} seconds left)`}
+              {`${instance.external.deadline}   (${instance.external.ttl} seconds left)`}
             </td>
           </tr>
 
           <tr>
             <th scope="col" >Quorum</th>
             <td>
-              {instance.quorum ? `${instance.quorum.value.toString()} (units: ${instance.quorum.inUnitsOf.toString()})` : "not known"}
+              {instance.external.quorum ? `${instance.external.quorum.value.toString()} (units: ${instance.external.quorum.inUnitsOf.toString()})` : "not known"}
             </td>
           </tr>
           <tr>
@@ -260,13 +263,13 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
           <tr>
             <th scope="col" >Double Voting Guard</th>
             <td>
-              {instance.doubleVotingGuard !== undefined ? ((instance.doubleVotingGuard !== "None") ? (`Yes: ` + instance.doubleVotingGuard) : "No") : "No"}
+              {instance.external.doubleVotingGuard !== undefined ? ((instance.external.doubleVotingGuard !== "None") ? (`Yes: ` + instance.external.doubleVotingGuard) : "No") : "No"}
             </td>
           </tr>
           <tr className="table-warning">
             <th scope="col" style={{ verticalAlign: "top" }}>Execution target</th>
             <td style={{ fontFamily: "monospace", maxHeight: "30px", overflowY: "scroll" }}>
-              {instance.targetAddress + (instance.targetAddress == playground.address ? " (Voting Playground)" : "")}
+              {instance.external.targetAddress + (instance.external.targetAddress == playground.address ? " (Voting Playground)" : "")}
             </td>
           </tr>
           <tr className="table-warning">
@@ -278,7 +281,7 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
           <tr >
             <th scope="col" style={{ verticalAlign: "top" }}>Result</th>
             <td style={{ fontFamily: "monospace" }}>
-              {formatAsCalldata(instance.result, false)}
+              {formatAsCalldata(instance.external.result, false)}
             </td>
           </tr>
         </tbody>
@@ -292,7 +295,7 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
               {"To  "}
             </th>
             <td>
-              {(instance.doubleVotingGuard === "On Voting Data" ? `${playground.address} (Voting Playground)` : `Voting Contract (${instance.votingContractAddress})`)}
+              {(instance.external.doubleVotingGuard === "On Voting Data" ? `${playground.address} (Voting Playground)` : `Voting Contract (${instance.pointer.votingContractAddress})`)}
             </td>
           </tr>
           <tr>
@@ -302,9 +305,9 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground }: 
             <td>
               {/* TODO: Why does the Voting data not update when i change the vote */}
               {formatAsCalldata(
-                instance.doubleVotingGuard === "On Voting Data" ?
-                  playground.interface.encodeFunctionData("vote", [instance.index, votingDataOption.data]) :
-                  instance.votingContract.interface.encodeFunctionData("vote", [instance.identifier, votingDataOption.data])
+                instance.external.doubleVotingGuard === "On Voting Data" ?
+                  playground.interface.encodeFunctionData("vote", [instance.internal.index, votingDataOption.data]) :
+                  instance.external.votingContract.interface.encodeFunctionData("vote", [instance.external.identifier, votingDataOption.data])
               )
               }
             </td>

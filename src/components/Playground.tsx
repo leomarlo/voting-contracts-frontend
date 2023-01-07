@@ -75,18 +75,27 @@ const getPlaygroundInstancesInternal = async (playground: ethers.Contract) => {
   let instances: Array<InstanceInternalInfoAndPointer> = []
   for (let i = 0; i < instancesFromEvent.length; i++) {
     let inst = await playground.instances(i)
-    instances.push({ ...instancesFromEvent[i], identifier: inst.identifier, votingContractAddress: inst.votingContract })
+    instances.push({
+      internal: instancesFromEvent[i],
+      pointer: {
+        identifier: inst.identifier,
+        votingContractAddress: inst.votingContract
+      }
+    })
   }
   return instances
 }
 
 const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, playground: ethers.Contract) => {
   // console.log('chainId', chainId, '\nSigner', await signer.getAddress(), '\nPlayground') //, await playground.VOTING_REGISTRY())
-  let playgroundInternalInstances = await getPlaygroundInstancesInternal(playground)
+  let playgroundInternalInstances: Array<InstanceInternalInfoAndPointer> = await getPlaygroundInstancesInternal(playground)
   let newInstances: Array<VotingInstanceInfo> = []
   for (let i = 0; i < playgroundInternalInstances.length; i++) {
     let inst: InstanceInternalInfoAndPointer = playgroundInternalInstances[i]
-    let newInstance: VotingInstanceInfo = { ...inst, ...await getVotingInstanceExternalInfo(signer, inst.votingContractAddress, await getGeneralVotingInterface(false), inst.identifier) }
+    let newInstance: VotingInstanceInfo = {
+      ...inst,
+      external: await getVotingInstanceExternalInfo(signer, inst.pointer.votingContractAddress, await getGeneralVotingInterface(false), inst.pointer.identifier)
+    }
     newInstances.push(newInstance)
   }
   return newInstances
@@ -163,16 +172,18 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
   }, [chainId, library])
 
-  const updateInstanceInfos = async (index: ethers.BigNumber) => {
+  const updateInstanceInfos = async (index: ethers.BigNumber, property: string | undefined) => {
     if (library === undefined) return null
     let tempInstances = [...instances]
     // TODO: update information about instances, like time to live, without setting selected instances to none again. 
     for (const instance of instances) {
-      if (instance.index == index) {
+      if (instance.internal.index == index) {
         let signer: ethers.providers.JsonRpcSigner = library.getSigner()
-        let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, instance.votingContractAddress, await getGeneralVotingInterface(false), instance.identifier)
+        let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, instance.pointer.votingContractAddress, await getGeneralVotingInterface(false), instance.pointer.identifier)
+        instance.external = externalInfo
       }
     }
+    setInstances(tempInstances)
   }
 
 
@@ -240,15 +251,15 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
       })
       let instanceIds: Array<number> = []
       if (selectedStatusIndices.length == 0) {
-        instanceIds = instances.map((inst) => { return inst.index.toNumber() })
+        instanceIds = instances.map((inst) => { return inst.internal.index.toNumber() })
       } else {
         for (let j = 0; j < instances.length; j++) {
           let info = instances[j]
-          if (info.status) {
-            let inclusionCondition = selectedStatusIndices.includes(info.status)
-            let customCondition = selectedStatusIndices.includes("5") && (!["0", "1", "2", "3", "4"].includes(info.status))
+          if (info.external.status) {
+            let inclusionCondition = selectedStatusIndices.includes(info.external.status)
+            let customCondition = selectedStatusIndices.includes("5") && (!["0", "1", "2", "3", "4"].includes(info.external.status))
             if (inclusionCondition || customCondition) {
-              instanceIds.push(info.index.toNumber())
+              instanceIds.push(info.internal.index.toNumber())
             }
           }
         }
@@ -334,10 +345,10 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                   }}>New Instance</button>
               </td>
             </tr>
-            {/* </form> */}
+            {/* FIXME: it should filter only those instances where the index is displayedInstances */}
             {displayedInstances.map((displayedIndex) => {
               let instance = instances[displayedIndex]
-              let status = instance.status ? instance.status : ethers.BigNumber.from("0")
+              let status = instance.external.status ? instance.external.status : ethers.BigNumber.from("0")
               let statusEnum: InstanceStatus
               if (status == ethers.BigNumber.from("1")) {
                 statusEnum = InstanceStatus.Completed
@@ -350,11 +361,11 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
               }
               return (<tr>
                 <th scope="row">{displayedIndex}</th>
-                <td>{(instance.target.isFunction ? instance.target.name : "") + ` (${instance.target.id})`}</td>
-                <td>{formatAddress(instance.votingContractAddress, 7)}</td>
-                <td>{instance.deadline ? instance.deadline : ""}</td>
-                <td>{instance.ttl}</td>
-                <td className={"table-" + statusColor[statusEnum]}>{instance.status ? ellipseString(instance.status, 3) : ""}</td>
+                <td>{(instance.internal.target.isFunction ? instance.internal.target.name : "") + ` (${instance.internal.target.id})`}</td>
+                <td>{formatAddress(instance.pointer.votingContractAddress, 7)}</td>
+                <td>{instance.external.deadline ? instance.external.deadline : ""}</td>
+                <td>{instance.external.ttl}</td>
+                <td className={"table-" + statusColor[statusEnum]}>{instance.external.status ? ellipseString(instance.external.status, 3) : ""}</td>
                 <td style={{ textAlign: "right" }}>
                   <button
                     onClick={() => {
@@ -374,7 +385,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                         setSelectedInstance(newInstances)
                         // open the details window
                         detailsHandling.focusOnDetailsSetter(true)
-                        detailsHandling.detailsSetter(<VoteOnInstance playground={playground} instance={instance} />)
+                        detailsHandling.detailsSetter(<VoteOnInstance playground={playground} instance={instance} updateInstanceInfos={updateInstanceInfos} />)
                         // log some infos
                         console.log('index', displayedIndex)
                         console.log('newInstances', newInstances[displayedIndex])

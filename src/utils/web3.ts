@@ -152,11 +152,16 @@ interface InstancePointer {
   votingContractAddress: string
 }
 
-type InstanceInternalInfoAndPointer = InstanceInternalInfo & InstancePointer;
+interface InstanceInternalInfoAndPointer {
+  internal: InstanceInternalInfo,
+  pointer: InstancePointer
+}
 
-type VotingInstanceInfo = InstanceInternalInfo & InstancePointer & VotingInstanceExternalInfo;
+interface VotingInstanceInfo extends InstanceInternalInfoAndPointer {
+  external: VotingInstanceExternalInfo
+}
 
-const getPlaygroundInstancesFromEvents = async (playgroundContract: ethers.Contract) => {
+async function getPlaygroundInstancesFromEvents(playgroundContract: ethers.Contract): Promise<Array<InstanceInternalInfo>> {
   let flt = playgroundContract.filters.VotingInstanceStarted(null, null, null)
   // console.log(eventsRes)
   const events = await playgroundContract.queryFilter(flt)
@@ -175,7 +180,11 @@ const getPlaygroundInstancesFromEvents = async (playgroundContract: ethers.Contr
   })
 }
 
-const getVotingInstanceExternalInfo = async (signer: ethers.providers.JsonRpcSigner, votingContractAddress: string, votingContractABI: Array<Object>, identifier: ethers.BigNumber) => {
+async function getVotingInstanceExternalInfo(
+  signer: ethers.providers.JsonRpcSigner,
+  votingContractAddress: string,
+  votingContractABI: Array<Object>,
+  identifier: ethers.BigNumber): Promise<VotingInstanceExternalInfo> {
 
   console.log('identifier', identifier)
 
