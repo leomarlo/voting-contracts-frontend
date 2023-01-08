@@ -2,7 +2,7 @@ import React, { ChangeEventHandler, CSSProperties, useState } from "react"
 
 interface SimpleFormArgs {
   label: string,
-  key?: string,
+  id: string,
   value: string,
   type: "text" | "number",
   defaultValue?: string | number,
@@ -11,8 +11,8 @@ interface SimpleFormArgs {
   minLabelWidth?: string
 }
 
-const FormPrimitive: React.FC<SimpleFormArgs> = ({ label, key, value, type, defaultValue, placeholder, minLabelWidth, onChange }: SimpleFormArgs) => {
-  let id: string = label + (key ? key : "")
+const FormPrimitive: React.FC<SimpleFormArgs> = ({ label, id, value, type, defaultValue, placeholder, minLabelWidth, onChange }: SimpleFormArgs) => {
+  // let id: string = label + (key ? key : "")
   const formStyle: CSSProperties = {
     minWidth: (minLabelWidth ? minLabelWidth : "280px"),
     textAlign: "right",
@@ -22,7 +22,7 @@ const FormPrimitive: React.FC<SimpleFormArgs> = ({ label, key, value, type, defa
     <div>
       <label htmlFor={id} style={formStyle}>{label + ":  "}</label>
       <input
-        key={id}
+        id={id}
         type={type}
         defaultValue={defaultValue}
         placeholder={placeholder}
@@ -33,12 +33,12 @@ const FormPrimitive: React.FC<SimpleFormArgs> = ({ label, key, value, type, defa
 }
 
 
-const SimpleForm: React.FC<SimpleFormArgs> = ({ label, key, value, type, defaultValue, placeholder, minLabelWidth }: SimpleFormArgs) => {
-  let id: string = label + (key ? key : "")
+const SimpleForm: React.FC<SimpleFormArgs> = ({ label, id, value, type, defaultValue, placeholder, minLabelWidth }: SimpleFormArgs) => {
+  // let id: string = label + (key ? key : "")
 
   return (
     <form style={{ margin: "2px" }}>
-      < FormPrimitive label={label} key={key} type={type} defaultValue={defaultValue} placeholder={placeholder} value={value} minLabelWidth={minLabelWidth} />
+      < FormPrimitive label={label} id={id} type={type} defaultValue={defaultValue} placeholder={placeholder} value={value} minLabelWidth={minLabelWidth} />
     </form>
   )
 }
@@ -56,7 +56,7 @@ const multipleInputsForms: React.FC<MultipleInputsFormsArgs> = ({ inputFields }:
         return (
           < FormPrimitive
             label={input.label}
-            key={input.key}
+            id={input.id}
             type={input.type}
             defaultValue={input.defaultValue}
             placeholder={input.placeholder}

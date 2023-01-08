@@ -464,6 +464,13 @@ interface PlaygroundFunctions {
 }
 
 
+type PlaygroundFormInputValues = {
+  [key: string]: {
+    regexs: Array<RegExp>,
+    satisifiedFormat: boolean,
+    inputArgs: Array<SimpleFormArgs>
+  }
+}
 
 
 
@@ -475,38 +482,70 @@ const getIntrospectPlayground: () => JSX.Element = () => {
     info: []
   })
 
-  const [playgroundFormInputValues, setPlaygroundFormInputValues] = useState<{ [key: string]: Array<SimpleFormArgs> }>(
+  const [playgroundFormInputValues, setPlaygroundFormInputValues] = useState<PlaygroundFormInputValues>(
     {}
   )
 
 
   useEffect(() => {
     updatePlaygroundFunctions(setPlaygroundFunctions)
-    setPlaygroundFormInitialInputValues(setPlaygroundFormInputValues)
+      .then(() => {
+        console.log('hallo updateing initial')
+        setPlaygroundFormInitialInputValues(setPlaygroundFormInputValues)
+      })
+
   }, [])
 
   useEffect(() => {
-    updatePlaygroundFunctions(setPlaygroundFunctions)
+    updatePlaygroundFunctions(setPlaygroundFunctions).then(
+      () => {
+        updateOnChangeCallbackForInputFields(setPlaygroundFormInputValues)
+      }
+    )
+
   }, [chainId, library])
 
   const setPlaygroundFormInitialInputValues = async (
-    setPlaygroundFormInputValues: Dispatch<SetStateAction<{ [key: string]: Array<SimpleFormArgs> }>>
+    setPlaygroundFormInputValues: Dispatch<SetStateAction<PlaygroundFormInputValues>>
   ) => {
     let viewFunctions = (await getPlaygroundViewFunctionsFromInterface(false))
-    let formData: { [key: string]: Array<SimpleFormArgs> } = {}
-    for (const frag of viewFunctions) {
-      formData[frag.name] = frag.inputs.map((inp: any, i: number) => {
+
+    let formData: PlaygroundFormInputValues = {}
+    for (let j = 0; j < viewFunctions.length; j++) {
+      let frag = viewFunctions[j]
+      let inputArgs = frag.inputs.map((inp: any, i: number) => {
         let simpleFormArgs: SimpleFormArgs = {
           label: inp.name ? inp.name : i.toString(),
-          key: i.toString(),
+          id: i.toString() + frag.name,
           value: "",
           type: "text",
-          placeholder: "fill",
-          onChange: () => { console.log("hallo, wir sind hier!") }
+          placeholder: inp.type,
+          onChange: () => { }
         }
         return simpleFormArgs
       })
+      let regexs = frag.inputs.map((inp: any) => {
+        if (inp.type.startsWith('bytes')) {
+          let digits = parseInt(inp.type.slice(5,)) * 2
+          return new RegExp(`^0x[0-9A-Fa-f]{${digits}}$`)
+        } else if (inp.type.startsWith('address')) {
+          return new RegExp(`^0x[0-9A-Fa-f]{40}$`)
+        } else if (inp.type.startsWith('uint')) {
+          return new RegExp(`^[0-9]+`)
+        } else {
+          return new RegExp(`^[0-9A-Za-z]+`)
+        }
+      })
+      let satisifiedFormat = false
+      formData[frag.name] = {
+        inputArgs: inputArgs,
+        regexs: regexs,
+        satisifiedFormat: satisifiedFormat
+      }
+
     }
+    console.log('formData', formData)
+
     setPlaygroundFormInputValues(formData)
   }
 
@@ -528,7 +567,18 @@ const getIntrospectPlayground: () => JSX.Element = () => {
       contract: contract,
       info: info
     })
+  }
 
+  const updateOnChangeCallbackForInputFields = async (
+    setPlaygroundFormInputValues: Dispatch<SetStateAction<PlaygroundFormInputValues>>
+  ) => {
+    let playgroundFormInputValuesTemp = { ...playgroundFormInputValues }
+    for (const v of Object.values(playgroundFormInputValuesTemp)) {
+      for (const inp of v.inputArgs) {
+        inp.onChange = (event) => handleInputUpdate(event)
+      }
+    }
+    setPlaygroundFormInputValues(playgroundFormInputValuesTemp)
   }
 
   const updateViewFunctions = (playgroundContract: ethers.Contract, viewFunctions: Array<Object>, whichOne: string) => {
@@ -541,14 +591,16 @@ const getIntrospectPlayground: () => JSX.Element = () => {
     }
   }
 
-  // const handleInputUpdate = (event: any) => {
-  //   let playgroundFunctionsTemp = [...playgroundFunctions];
-  //   for (const plgfct in playgroundFunctionsTemp) {
-  //     if plgfct.name == event.target.id
-  //   }
-  //   data[key as keyof typeof data] = event.target.value
-  //   setInitialNewInstanceValues(data)
-  // }
+  const handleInputUpdate = (
+    event: any
+  ) => {
+    let index = event.target.id.match(/^\d+/)[0];
+    let functionName = event.target.id.slice(index.length,)
+    let playgroundFormInputValuesTemp = { ...playgroundFormInputValues }
+    console.log('playgroundFormInputValuesTemp', playgroundFormInputValuesTemp)
+    playgroundFormInputValuesTemp[functionName].inputArgs[parseInt(index)].value = event.target.value
+    setPlaygroundFormInputValues(playgroundFormInputValuesTemp)
+  }
 
   return (
     <div key="hallo" className="row">
@@ -584,7 +636,7 @@ const getIntrospectPlayground: () => JSX.Element = () => {
               display: f.connected ? "inline-block" : "none",
               backgroundColor: "white"
             }}>
-              {playgroundFormInputValues[f.name] ? multipleInputsForms({ inputFields: playgroundFormInputValues[f.name] }) : <></>}
+              {playgroundFormInputValues[f.name] ? multipleInputsForms({ inputFields: playgroundFormInputValues[f.name].inputArgs }) : <></>}
             </div>
           </div>
         )
