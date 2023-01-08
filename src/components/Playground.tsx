@@ -520,6 +520,8 @@ const getIntrospectPlayground: () => JSX.Element = () => {
           value: "",
           type: "text",
           placeholder: inp.type,
+          minLabelWidth: "30%",
+          minInputWidth: "70%",
           onChange: () => { }
         }
         return simpleFormArgs
@@ -536,7 +538,7 @@ const getIntrospectPlayground: () => JSX.Element = () => {
           return new RegExp(`^[0-9A-Za-z]+`)
         }
       })
-      let satisifiedFormat = false
+      let satisifiedFormat = frag.inputs.length == 0 ? true : false
       formData[frag.name] = {
         inputArgs: inputArgs,
         regexs: regexs,
@@ -544,7 +546,6 @@ const getIntrospectPlayground: () => JSX.Element = () => {
       }
 
     }
-    console.log('formData', formData)
 
     setPlaygroundFormInputValues(formData)
   }
@@ -599,6 +600,10 @@ const getIntrospectPlayground: () => JSX.Element = () => {
     let playgroundFormInputValuesTemp = { ...playgroundFormInputValues }
     console.log('playgroundFormInputValuesTemp', playgroundFormInputValuesTemp)
     playgroundFormInputValuesTemp[functionName].inputArgs[parseInt(index)].value = event.target.value
+    let satisifiedFormat = playgroundFormInputValuesTemp[functionName].inputArgs.every((arg, ind) => {
+      return arg.value.match(playgroundFormInputValuesTemp[functionName].regexs[ind])
+    })
+    playgroundFormInputValuesTemp[functionName].satisifiedFormat = satisifiedFormat
     setPlaygroundFormInputValues(playgroundFormInputValuesTemp)
   }
 
@@ -627,7 +632,10 @@ const getIntrospectPlayground: () => JSX.Element = () => {
                 {f.name}
               </div>
               <div style={{ display: "inline-block", padding: "2px", width: "30%", textAlign: "right" }}>
-                <button style={{ width: "90%", margin: "2px" }} className="btn btn-primary" disabled={!f.connected}>
+                <button
+                  style={{ width: "90%", margin: "2px" }}
+                  className="btn btn-primary"
+                  disabled={!f.connected || !playgroundFormInputValues[f.name].satisifiedFormat}>
                   {f.connected ? "View" : "Please connect!"}
                 </button>
               </div>

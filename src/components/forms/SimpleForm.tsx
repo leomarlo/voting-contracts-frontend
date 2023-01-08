@@ -8,20 +8,29 @@ interface SimpleFormArgs {
   defaultValue?: string | number,
   placeholder?: string,
   onChange?: ChangeEventHandler<HTMLInputElement>,
-  minLabelWidth?: string
+  minLabelWidth?: string,
+  minInputWidth?: string,
 }
 
-const FormPrimitive: React.FC<SimpleFormArgs> = ({ label, id, value, type, defaultValue, placeholder, minLabelWidth, onChange }: SimpleFormArgs) => {
+const FormPrimitive: React.FC<SimpleFormArgs> = ({ label, id, value, type, defaultValue, placeholder, minLabelWidth, minInputWidth, onChange }: SimpleFormArgs) => {
   // let id: string = label + (key ? key : "")
   const formStyle: CSSProperties = {
-    minWidth: (minLabelWidth ? minLabelWidth : "280px"),
+    minWidth: (minLabelWidth ? minLabelWidth : "20%"),
     textAlign: "right",
     padding: "3px"
   }
+  // console.log('inside primitive form and min width is:', minInputWidth)
+  const minWidth = (minInputWidth ? minInputWidth : "70%")
+  const inputStyle: CSSProperties = {
+    minWidth: minWidth,
+    textAlign: "left"
+  }
   return (
-    <div>
+    <div style={{ padding: "2px" }}>
       <label htmlFor={id} style={formStyle}>{label + ":  "}</label>
       <input
+        width={minWidth}
+        style={inputStyle}
         id={id}
         type={type}
         defaultValue={defaultValue}
@@ -62,6 +71,7 @@ const multipleInputsForms: React.FC<MultipleInputsFormsArgs> = ({ inputFields }:
             placeholder={input.placeholder}
             value={input.value}
             minLabelWidth={input.minLabelWidth}
+            minInputWidth={input.minInputWidth}
             onChange={input.onChange} />
         )
       })}
