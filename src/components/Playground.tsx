@@ -468,7 +468,8 @@ type PlaygroundFormInputValues = {
   [key: string]: {
     regexs: Array<RegExp>,
     satisifiedFormat: boolean,
-    inputArgs: Array<SimpleFormArgs>
+    inputArgs: Array<SimpleFormArgs>,
+    result: any
   }
 }
 
@@ -542,7 +543,8 @@ const getIntrospectPlayground: () => JSX.Element = () => {
       formData[frag.name] = {
         inputArgs: inputArgs,
         regexs: regexs,
-        satisifiedFormat: satisifiedFormat
+        satisifiedFormat: satisifiedFormat,
+        result: ""
       }
 
     }
@@ -592,6 +594,19 @@ const getIntrospectPlayground: () => JSX.Element = () => {
     }
   }
 
+  const updateViewFunctionOutputs = async (event: any, whichFragment: string) => {
+    let playgroundFormInputValuesTemp = { ...playgroundFormInputValues }
+    if (whichFragment != "all") {
+      // do nothing yet
+      let inputValues = playgroundFormInputValuesTemp[whichFragment].inputArgs.map((a) => { return a.value })
+      let result = await playgroundFunctions.contract[whichFragment](...inputValues)
+      playgroundFormInputValuesTemp[whichFragment].result = result
+      setPlaygroundFormInputValues(playgroundFormInputValuesTemp)
+    }
+    // TODO: Also do the other way around ("all")
+
+  }
+
   const handleInputUpdate = (
     event: any
   ) => {
@@ -635,19 +650,27 @@ const getIntrospectPlayground: () => JSX.Element = () => {
                 <button
                   style={{ width: "90%", margin: "2px" }}
                   className="btn btn-primary"
-                  disabled={!f.connected || !playgroundFormInputValues[f.name].satisifiedFormat}>
+                  disabled={!f.connected || !playgroundFormInputValues[f.name].satisifiedFormat}
+                  onClick={(e) => updateViewFunctionOutputs(e, f.name)}>
                   {f.connected ? "View" : "Please connect!"}
                 </button>
               </div>
             </div>
             <div style={{
               display: f.connected ? "inline-block" : "none",
-              backgroundColor: "white"
+              backgroundColor: "white",
+              width: "100%"
             }}>
               {playgroundFormInputValues[f.name] ? multipleInputsForms({ inputFields: playgroundFormInputValues[f.name].inputArgs }) : <></>}
             </div>
-          </div>
-        )
+            <div style={{
+              display: playgroundFormInputValues[f.name].result == "" ? "none" : "inline-block",
+              backgroundColor: "white",
+              width: "100%"
+            }}>
+              {JSON.stringify(playgroundFormInputValues[f.name].result)}
+            </div>
+          </div>)
       })}
     </div>
   )
