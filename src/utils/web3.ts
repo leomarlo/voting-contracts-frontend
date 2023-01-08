@@ -97,6 +97,13 @@ const getPlaygroundContract = async (chainId: number, fromHttpRequest?: boolean)
   )
 }
 
+const getPlaygroundViewFunctionsFromInterface = async (fromHttpRequest: boolean) => {
+
+  return Object.values((await getPlaygroundInterface(false)))
+    .filter(v => { return v.type == "function" })
+    .filter(v => { return v.stateMutability == "view" })
+}
+
 const getContractAddress = async (chainId: number, contractName: string) => {
 
   let flag = false
@@ -294,6 +301,7 @@ export {
   getGeneralVotingInterface,
   getContractAddress,
   getPlaygroundInterface,
+  getPlaygroundViewFunctionsFromInterface,
   getPlaygroundAddress,
   getPlaygroundContract,
   getVotingInstanceExternalInfo,

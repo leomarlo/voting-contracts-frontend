@@ -6,10 +6,6 @@ import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
 import { VoteOnInstance } from "./VoteOnInstance"
 import { StartNewInstance } from "./StartNewInstance"
-import {
-  FormPrimitive,
-  SimpleFormArgs
-} from "./forms/SimpleForm"
 
 import Select, { MultiValue } from 'react-select'
 import {
@@ -448,9 +444,153 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 }
 
 
+import {
+  multipleInputsForms,
+  MultipleInputsFormsArgs,
+  SimpleFormArgs
+} from "./forms/SimpleForm"
+
+import { getPlaygroundViewFunctionsFromInterface } from "../utils/web3"
+
+
 interface PlaygroundFunctionInfo {
   name: string,
   connected: boolean
+}
+
+interface PlaygroundFunctions {
+  contract: ethers.Contract,
+  info: Array<PlaygroundFunctionInfo>
+}
+
+
+
+
+
+const getIntrospectPlayground: () => JSX.Element = () => {
+  const { chainId, library } = useWeb3React<Web3Provider>()
+
+  const [playgroundFunctions, setPlaygroundFunctions] = useState<PlaygroundFunctions>({
+    contract: new ethers.Contract(ethers.constants.AddressZero, []),
+    info: []
+  })
+
+  const [playgroundFormInputValues, setPlaygroundFormInputValues] = useState<{ [key: string]: Array<SimpleFormArgs> }>(
+    {}
+  )
+
+
+  useEffect(() => {
+    updatePlaygroundFunctions(setPlaygroundFunctions)
+    setPlaygroundFormInitialInputValues(setPlaygroundFormInputValues)
+  }, [])
+
+  useEffect(() => {
+    updatePlaygroundFunctions(setPlaygroundFunctions)
+  }, [chainId, library])
+
+  const setPlaygroundFormInitialInputValues = async (
+    setPlaygroundFormInputValues: Dispatch<SetStateAction<{ [key: string]: Array<SimpleFormArgs> }>>
+  ) => {
+    let viewFunctions = (await getPlaygroundViewFunctionsFromInterface(false))
+    let formData: { [key: string]: Array<SimpleFormArgs> } = {}
+    for (const frag of viewFunctions) {
+      formData[frag.name] = frag.inputs.map((inp: any, i: number) => {
+        let simpleFormArgs: SimpleFormArgs = {
+          label: inp.name ? inp.name : i.toString(),
+          key: i.toString(),
+          value: "",
+          type: "text",
+          placeholder: "fill",
+          onChange: () => { console.log("hallo, wir sind hier!") }
+        }
+        return simpleFormArgs
+      })
+    }
+    setPlaygroundFormInputValues(formData)
+  }
+
+  const updatePlaygroundFunctions = async (
+    setPlaygroundFunctions: Dispatch<SetStateAction<PlaygroundFunctions>>
+  ) => {
+    let info = (await getPlaygroundViewFunctionsFromInterface(false))
+      .map((f) => {
+        return {
+          name: f.name,
+          connected: (chainId && library) ? true : false
+        }
+      })
+    let contract = (chainId && library) ?
+      (await getPlaygroundContract(chainId, false)).connect(library.getSigner()) :
+      new ethers.Contract(ethers.constants.AddressZero, []);
+
+    setPlaygroundFunctions({
+      contract: contract,
+      info: info
+    })
+
+  }
+
+  const updateViewFunctions = (playgroundContract: ethers.Contract, viewFunctions: Array<Object>, whichOne: string) => {
+    // let playgroundFunctionsTemp = [...playgroundFunctions]
+    if (!library) return []
+    if (whichOne == "all") {
+      for (const segment in viewFunctions) {
+        playgroundContract[segment]
+      }
+    }
+  }
+
+  // const handleInputUpdate = (event: any) => {
+  //   let playgroundFunctionsTemp = [...playgroundFunctions];
+  //   for (const plgfct in playgroundFunctionsTemp) {
+  //     if plgfct.name == event.target.id
+  //   }
+  //   data[key as keyof typeof data] = event.target.value
+  //   setInitialNewInstanceValues(data)
+  // }
+
+  return (
+    <div key="hallo" className="row">
+      <div>
+        Here we see all the view functions of the Playground Contract.
+        Once you are connected you may inspect every single one of them or update them all at once.
+      </div>
+      <div>
+        <div style={{ display: "inline-block", padding: "2px", width: "70%" }}>
+
+        </div>
+        <div style={{ display: "inline-block", padding: "2px", width: "30%", textAlign: "right" }}>
+          <button style={{ width: "90%", margin: "2px" }} className="btn btn-primary" disabled={library === undefined}>
+            {library ? "View all" : "Please connect!"}
+          </button>
+        </div>
+      </div>
+      <hr />
+      {playgroundFunctions.info.map(f => {
+        return (
+          <div className="card" style={{ backgroundColor: "beige" }}>
+            <div>
+              <div style={{ display: "inline-block", padding: "2px", width: "70%" }}>
+                {f.name}
+              </div>
+              <div style={{ display: "inline-block", padding: "2px", width: "30%", textAlign: "right" }}>
+                <button style={{ width: "90%", margin: "2px" }} className="btn btn-primary" disabled={!f.connected}>
+                  {f.connected ? "View" : "Please connect!"}
+                </button>
+              </div>
+            </div>
+            <div style={{
+              display: f.connected ? "inline-block" : "none",
+              backgroundColor: "white"
+            }}>
+              {playgroundFormInputValues[f.name] ? multipleInputsForms({ inputFields: playgroundFormInputValues[f.name] }) : <></>}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 
@@ -459,23 +599,11 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
   const initialDisplaySection: SectionFlags = {
     [Sections.WhatIsDaoAbout]: true,
     [Sections.CurrentVotes]: true,
-    [Sections.ViewFunctions]: false
+    [Sections.ViewFunctions]: true
   }
-
-  const { chainId, library } = useWeb3React<Web3Provider>()
 
   const [displaySection, setDisplaySection] = useState<SectionFlags>(initialDisplaySection)
 
-  const [playgroundFunctions, setPlaygroundFunctions] = useState<Array<PlaygroundFunctionInfo>>([])
-
-
-  useEffect(() => {
-    updatePlaygroundFunctions(setPlaygroundFunctions)
-  }, [])
-
-  useEffect(() => {
-    updatePlaygroundFunctions(setPlaygroundFunctions)
-  }, [chainId, library])
 
   const setDisplayThisSection = (section: Sections, flag: boolean) => {
     let displaySectionTemp = { ...displaySection }
@@ -487,32 +615,6 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
     displaySection[section] ? setDisplayThisSection(section, false) : setDisplayThisSection(section, true);
   }
 
-  const updatePlaygroundFunctions = async (
-    setPlaygroundFunctions: Dispatch<SetStateAction<Array<PlaygroundFunctionInfo>>>
-  ) => {
-    if (chainId && library) {
-      let signer: ethers.providers.JsonRpcSigner = library.getSigner()
-      let playgroundContract = (await getPlaygroundContract(chainId, false)).connect(signer)
-      console.log('functions', playgroundContract.functions)
-      setPlaygroundFunctions(
-        Object.keys(playgroundContract.functions).map((f) => {
-          return {
-            name: f.toString(),
-            connected: true
-          }
-        })
-      )
-    }
-    else {
-      const playgroundInterface = await getPlaygroundInterface(false)
-      console.log('playgroundInterface', playgroundInterface)
-      console.log('typeof playgroundInterface', Object.values(playgroundInterface).map(v => {
-        return v.name
-      }))
-      // setPlaygroundFunctions(playgroundInterface.functions.map(f=>{}))
-      setPlaygroundFunctions([{ name: "bla", connected: false }])
-    }
-  }
 
 
   const sectionContent: SectionContents = {
@@ -531,15 +633,8 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
       </>
     ),
     [Sections.CurrentVotes]: getCurrentVotingInstances(detailsHandling),
-    [Sections.ViewFunctions]: (
-      <div key="hallo" className="card">
-        <div className="card-body">
-          <ul>
-            {playgroundFunctions.map(f => { return <li>{f.name}</li> })}
-          </ul>
-        </div>
-      </div>
-    )
+    [Sections.ViewFunctions]: getIntrospectPlayground()
+    // [Sections.ExecutableFunctions]: getPlaygroundExecutables()
   }
 
   const Paragraphs = Object.keys(Sections).filter((v) => isNaN(Number(v))).map((section) => {
