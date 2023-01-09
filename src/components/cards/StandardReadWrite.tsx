@@ -89,7 +89,8 @@ const FormReadWriteCard: React.FC<FormReadWriteCardArgs> = (
     formInputs.push(
       <FormPrimitive
         label={`${inputData[i].label} (${inputData[i].specification})`}
-        key={identifier}
+        id={identifier}
+        type="text"
         defaultValue={inputData[i].defaultValue}
         value={inputData[i].defaultValue} />)
   }
@@ -147,7 +148,8 @@ const FormReadWriteCardTest: React.FC<FormReadWriteCardArgs> = (
     formInputs.push(
       <FormPrimitive
         label={`${inputData[i].label} (${inputData[i].specification})`}
-        key={identifier}
+        id={identifier}
+        type="text"
         value={inputValues[i]}
         defaultValue={inputData[i].defaultValue}
         onChange={event => handleFormChange(i, event)} />)

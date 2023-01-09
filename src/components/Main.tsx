@@ -11,6 +11,7 @@ import { PlaygroundComp } from "./Playground"
 import { VotingIntegrationComp } from "./VotingIntegration"
 import { pageInfo } from "../utils/pages"
 import { Pages, PageSetter } from "../types/pages"
+import { VotingContractsLogo } from "./icons/Logo"
 
 const mainStyle = {
   zIndex: 2,
@@ -70,7 +71,9 @@ const Main: React.FC = () => {
   return (
     <div className="row absolute padded1" style={mainStyle}>
       <div className="col-2" style={menuStyle}>
-        <div style={{ minHeight: "200px" }}></div>
+        <div style={{ minHeight: "200px" }}>
+          {/* <VotingContractsLogo width="100%" /> */}
+        </div>
         <Menu detailsHandling={detailsHandling} />
       </div>
       <div className={focusOnDetails ? columnWidths[1][0] : columnWidths[0][0]} style={contentContainerStyle} >

@@ -29,7 +29,7 @@ module.exports = {
     allowedHosts: "all"
   },
   resolve: {
-    extensions: [".js", ".jsx", ".ts", ".tsx"]
+    extensions: [".svg", ".js", ".jsx", ".ts", ".tsx"]
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -53,7 +53,13 @@ module.exports = {
       {
         test: /\.css$/,
         use: ["style-loader", "css-loader"]
+      },
+      {
+        test: /\.svg$/,
+        exclude: /(node_modules)/,
+        use: ["file-loader"]
       }
+
     ]
   }
 };
