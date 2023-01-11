@@ -641,7 +641,7 @@ const getIntrospectPlayground: () => JSX.Element = () => {
       <hr />
       {playgroundFunctions.info.map(f => {
         return (
-          <div className="card" style={{ backgroundColor: "beige" }}>
+          <div className="card" style={{ marginBottom: "5px", marginTop: "5px", backgroundColor: "beige" }}>
             <div>
               <div style={{ display: "inline-block", padding: "2px", width: "70%" }}>
                 {f.name}

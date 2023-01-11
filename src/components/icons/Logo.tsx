@@ -6,6 +6,7 @@ interface SVGArgs {
 
 const VotingContractsLogo: React.FC<SVGArgs> = ({ width }: SVGArgs) => {
 
+  // return <></>
   const styles = [
     {
       fill: "#225500",

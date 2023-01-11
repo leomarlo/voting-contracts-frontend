@@ -147,6 +147,10 @@ interface VotingInstanceExternalInfo {
   quorum: { value: string, inUnitsOf: string } | undefined
 }
 
+interface VotingInstanceChainInfo {
+  hash?: string
+}
+
 interface TargetInterface {
   id: string,
   name?: string,

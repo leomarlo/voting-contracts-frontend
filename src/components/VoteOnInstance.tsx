@@ -127,8 +127,8 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
   const notify = (message: string) => toast(message);
 
   const submitVoteToChain = async (event: any) => {
-    console.log('event', event)
-    console.log([instance.internal.index, votingDataOption.data])
+    // console.log('event', event)
+    // console.log([instance.internal.index, votingDataOption.data])
     if (instance.external.doubleVotingGuard === "On Voting Data") {
       try {
         let tx = await playground.vote(instance.internal.index, votingDataOption.data)
@@ -148,11 +148,24 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
       }
     }
   }
+
+  const submitImplementToChain = async (event: any) => {
+    console.log('Inside submitImplementToChain')
+    try {
+      let tx = await playground.implement(instance.internal.index, instance.internal.target.calldata)
+      setReceipt(await tx.wait())
+    } catch (err) {
+      setReceipt("")
+      // await notify(JSON.stringify(err))
+    }
+  }
+
   const tokenInfo: TokenInfo | undefined = instance.external.token
 
   const submisionButtonsEnabled = () => {
     let implementingPermittedCondition: boolean = instance.external.implementingPermitted ? instance.external.implementingPermitted : false
     let statusCondition = instance.external.status ? instance.external.status == "4" : false
+    let deadlineCondition: boolean = instance.external.ttl == 0
     let noInformationAboutPermissionOrStatus = (instance.external.status === undefined && instance.external.implementingPermitted === undefined)
     let voteCondition = instance.external.status ? (!["0", "1", "2", "4"].includes(instance.external.status)) : false
     return {
@@ -162,7 +175,8 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
       ),
       implement: (
         noInformationAboutPermissionOrStatus ||
-        (implementingPermittedCondition || statusCondition)
+        (implementingPermittedCondition || statusCondition) ||
+        deadlineCondition // FIXME: Actually this condition should be revised!!
       )
     }
   }
@@ -192,7 +206,7 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
       <div>
         <div style={{ width: "70%", padding: "4px", display: "inline-block" }}></div>
         <div style={{ width: "30%", padding: "4px", display: "inline-block" }}>
-          <button onClick={(event) => console.log(event)} className="btn btn-warning" style={{ width: "100%" }} disabled={!submisionButtonsEnabled().implement}>Implement</button>
+          <button onClick={(event) => submitImplementToChain(event)} className="btn btn-warning" style={{ width: "100%" }} disabled={!submisionButtonsEnabled().implement}>Implement</button>
 
         </div>
       </div>
