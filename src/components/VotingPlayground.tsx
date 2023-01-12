@@ -99,10 +99,8 @@ const VotingPlaygroundComp: React.FC<VotingPlaygroundArgs> = ({ detailHandling }
       // const signer = provider.getSigner()
       const otherSigner = library.getSigner()
       const votingPlaygroundAddress = getContractAddress("VotingPlayground")
-      console.log('address of voting Playground', votingPlaygroundAddress)
       // const playground = new Contract()
       let result = await playground.contract[contractFragment](...values)
-      console.log(contractFragment, result)
     } else {
       console.log('window.ethereum is undefined')
     }

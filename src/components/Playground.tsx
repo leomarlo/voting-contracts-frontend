@@ -1,7 +1,13 @@
 import React, { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { useWeb3React } from "@web3-react/core"
 import { Web3Provider } from "@ethersproject/providers";
-import { DetailsHandling, InitialNewInstanceValues, StartNewInstanceArgs } from "../types/components"
+import {
+  DetailsHandling,
+  InitialNewInstanceValues,
+  RegisteredContractsEventArgs,
+  RegisteredVotingContract,
+  StartNewInstanceArgs,
+} from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
 import { VoteOnInstance } from "./VoteOnInstance"
@@ -17,7 +23,8 @@ import {
   getPlaygroundInstancesFromEvents,
   getGeneralVotingInterface,
   InstanceInternalInfo,
-  InstanceInternalInfoAndPointer
+  InstanceInternalInfoAndPointer,
+  getRegisteredVotingContracts
 } from "../utils/web3"
 
 import { formatAddress, ellipseString } from '../utils/format'
@@ -94,7 +101,12 @@ const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, pl
     let inst: InstanceInternalInfoAndPointer = playgroundInternalInstances[i]
     let newInstance: VotingInstanceInfo = {
       ...inst,
-      external: await getVotingInstanceExternalInfo(signer, inst.pointer.votingContractAddress, await getGeneralVotingInterface(false), inst.pointer.identifier)
+      external: await getVotingInstanceExternalInfo(signer, inst.pointer.votingContractAddress, await getGeneralVotingInterface(false), inst.pointer.identifier),
+      chainInfo: {
+        successfulAttempt: false,
+        successfulImplement: false,
+        attempts: 0
+      }
     }
     newInstances.push(newInstance)
   }
@@ -129,7 +141,8 @@ const setPlaygroundInstances = async (
   setInstances: Dispatch<SetStateAction<Array<VotingInstanceInfo>>>,
   setInstanceDisplayInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>,
   setPlayground: Dispatch<SetStateAction<ethers.Contract>>,
-  setDisplayedInstances: Dispatch<SetStateAction<Array<number>>>) => {
+  setDisplayedInstances: Dispatch<SetStateAction<Array<number>>>,
+  setRegisteredVotingContracts: Dispatch<Array<RegisteredVotingContract>>) => {
 
   let playgroundContract = (await getPlaygroundContract(chainId)).connect(signer)
   let infos = await getPlaygroundInstances(signer, playgroundContract)
@@ -137,14 +150,26 @@ const setPlaygroundInstances = async (
   setInstanceDisplayInfo(infos.map((_, i) => { return { index: i, selected: false } }))
   setPlayground(playgroundContract)
   setDisplayedInstances(infos.map((_, i) => i))
+  // let registeredVotingContracts: Array<RegisteredContractsEventArgs> = await getRegisteredVotingContracts(playgroundContract)
+  // console.log(registeredVotingContracts)
+  // setRegisteredVotingContracts(registeredVotingContracts.map((evtargs) => {
+  //   let entry: RegisteredVotingContract = {
+  //     registrationArgs: evtargs,
+  //     callTimes: 0
+  //   }
+  //   return entry
+  // }))
+
 }
 
 
 
 const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
+
   const { chainId, library } = useWeb3React<Web3Provider>()
   const [playground, setPlayground] = useState<ethers.Contract>(new ethers.Contract(ethers.constants.AddressZero, []))
+  const [registeredVotingContracts, setRegisteredVotingContracts] = useState<Array<RegisteredVotingContract>>([])
   const [instances, setInstances] = useState<Array<VotingInstanceInfo>>([] as VotingInstanceInfo[])
   const [displayedInstances, setDisplayedInstances] = useState<Array<number>>([])
   const [selectedInstance, setSelectedInstance] = useState<Array<instanceDisplayInfo>>([] as instanceDisplayInfo[])
@@ -154,25 +179,40 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
     deadline: ""
   })
 
-  useEffect(() => {
-    console.log('instances are', instances)
-    if (chainId && library) {
-      console.log('chainId inside useEffect (if) is', chainId)
-      let signer: ethers.providers.JsonRpcSigner = library.getSigner()
-      setPlaygroundInstances(chainId, signer, setInstances, setSelectedInstance, setPlayground, setDisplayedInstances)
 
+  useEffect(() => {
+    if (chainId && library) {
+      let signer: ethers.providers.JsonRpcSigner = library.getSigner()
+      setPlaygroundInstances(
+        chainId,
+        signer,
+        setInstances,
+        setSelectedInstance,
+        setPlayground,
+        setDisplayedInstances,
+        setRegisteredVotingContracts)
+      // setRegisteredVotingContracts()
+      // TODO: getRegisteredVotingContracts
     } else {
       setInstances([] as VotingInstanceInfo[])
       setDisplayedInstances([] as number[])
       setSelectedInstance([] as instanceDisplayInfo[])
       setPlayground(new ethers.Contract(ethers.constants.AddressZero, []))
-      console.log('chainId inside useEffect (else) is', chainId)
+      setRegisteredVotingContracts([])
     }
 
 
   }, [chainId, library])
 
-  const updateInstanceInfos = async (index: ethers.BigNumber, property: string | undefined) => {
+  const updateInstanceInfos = async (
+    index: ethers.BigNumber,
+    property: string | undefined,
+    transactionHashAndAttempts?: {
+      transactionHash?: string,
+      successfulAttempt: boolean,
+      successfulImplement: boolean,
+      attempts: number
+    }) => {
     if (library === undefined) return null
     let tempInstances = [...instances]
     // TODO: update information about instances, like time to live, without setting selected instances to none again. 
@@ -183,13 +223,21 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
           let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, instance.pointer.votingContractAddress, await getGeneralVotingInterface(false), instance.pointer.identifier)
           instance.external = externalInfo
         } else if (property == "implementingPermitted") {
-          console.log('implementing permitted queried')
           try {
             let implementingPermitted = await instance.external.votingContract.implementingPermitted(instance.external.identifier)
             instance.external.implementingPermitted = implementingPermitted
           } catch (err) {
-            console.log('Cannot call implementingPermitted. Error message: ', err)
           }
+        } else if (property == "transactionHash" && transactionHashAndAttempts) {
+          if (transactionHashAndAttempts.transactionHash && transactionHashAndAttempts.successfulImplement) {
+            instance.chainInfo = {
+              hash: transactionHashAndAttempts.transactionHash,
+              successfulAttempt: transactionHashAndAttempts.successfulAttempt,
+              successfulImplement: transactionHashAndAttempts.successfulImplement,
+              attempts: transactionHashAndAttempts.attempts
+            }
+          }
+
         }
       }
     }
@@ -198,7 +246,6 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
   }
 
   const updateDeadlinesAndImplementingPermitted = async () => {
-    console.log("inside the updateDeadlinesAndImplementingPermitted function")
     if (library === undefined) return null
     let tempInstances = [...instances]
     for (const instance of tempInstances) {
@@ -277,7 +324,6 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
     }>,
     typeOfFilterChange?: string) => {
 
-    console.log(event)
     if (typeOfFilterChange == "status") {
       let selectedStatusIndices = event.map(({ value, label }) => {
         return votingStatusIndex[VotingStatusImplement[value as keyof typeof VotingStatusImplement]].toString()
@@ -372,6 +418,8 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
                     detailsHandling.detailsSetter(
                       <StartNewInstance
+                        playground={playground}
+                        registeredVotingContracts={registeredVotingContracts}
                         detailsHandling={detailsHandling}
                         initialNewInstanceValues={initialNewInstanceValues}
                         initialNewInstanceValuesSetter={setInitialNewInstanceValues} />)
@@ -412,9 +460,6 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                         // close the details window
                         detailsHandling.focusOnDetailsSetter(false)
                         detailsHandling.detailsSetter(<></>)
-                        // log some infos
-                        console.log('index', displayedIndex)
-                        console.log('newInstances', newInstances[displayedIndex])
                       } else {
                         // SELECT
                         updateInstanceInfos(instance.internal.index, "all")
@@ -425,12 +470,9 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                         // open the details window
                         detailsHandling.focusOnDetailsSetter(true)
                         detailsHandling.detailsSetter(<VoteOnInstance playground={playground} instance={instance} updateInstanceInfos={updateInstanceInfos} />)
-                        // log some infos
-                        console.log('index', displayedIndex)
-                        console.log('newInstances', newInstances[displayedIndex])
+
                       }
 
-                      console.log('selected instance', selectedInstance)
                     }}
                     style={{ minWidth: "90%" }} className="btn btn-primary">
                     {selectedInstance[displayedIndex].selected ? "Hide" : "Open Instance"}
@@ -491,7 +533,6 @@ const getIntrospectPlayground: () => JSX.Element = () => {
   useEffect(() => {
     updatePlaygroundFunctions(setPlaygroundFunctions)
       .then(() => {
-        console.log('hallo updateing initial')
         setPlaygroundFormInitialInputValues(setPlaygroundFormInputValues)
       })
 
@@ -613,7 +654,6 @@ const getIntrospectPlayground: () => JSX.Element = () => {
     let index = event.target.id.match(/^\d+/)[0];
     let functionName = event.target.id.slice(index.length,)
     let playgroundFormInputValuesTemp = { ...playgroundFormInputValues }
-    console.log('playgroundFormInputValuesTemp', playgroundFormInputValuesTemp)
     playgroundFormInputValuesTemp[functionName].inputArgs[parseInt(index)].value = event.target.value
     let satisifiedFormat = playgroundFormInputValuesTemp[functionName].inputArgs.every((arg, ind) => {
       return arg.value.match(playgroundFormInputValuesTemp[functionName].regexs[ind])
@@ -640,6 +680,7 @@ const getIntrospectPlayground: () => JSX.Element = () => {
       </div>
       <hr />
       {playgroundFunctions.info.map(f => {
+        if (!(f.name in playgroundFormInputValues)) return <></>
         return (
           <div className="card" style={{ marginBottom: "5px", marginTop: "5px", backgroundColor: "beige" }}>
             <div>
@@ -746,15 +787,15 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
         Any contract that may call voting contracts directly (as part of its interface) or indirectly (as part of a private or internal function) is a voting contract integration.
         <span style={{ marginLeft: "3px", ...linkStyle }} onClick={(e) => { detailsHandling.pageSetter(Pages.VotingContractIntegration) }}>
           Please read detailed information here!
-        </span><br /><br />
+        </span>
+      </p><br /><br />
 
-        We have created a hypothetical DAO with several functions, each of which can either be triggered:
-        <ol>
-          <li> by anyone,</li>
-          <li> only through a vote,</li>
-          <li> by some with rights or through a vote.</li>
-        </ol>
-      </p>
+      We have created a hypothetical DAO with several functions, each of which can either be triggered:
+      <ol>
+        <li> by anyone,</li>
+        <li> only through a vote,</li>
+        <li> by some with rights or through a vote.</li>
+      </ol>
       {Paragraphs}
     </div>
   )

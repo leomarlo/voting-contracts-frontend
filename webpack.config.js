@@ -5,9 +5,12 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 var OpenBrowserPlugin = require('open-browser-webpack-plugin');
 //Import path module
 const path = require("path");
+const dotenv = require('dotenv')
+dotenv.config()
 
 const port = 3006;
 
+console.log('INSIDE WEBPACK', process.env.NODE_ENV)
 module.exports = {
   entry: "./src/index.tsx", //set entry file
   // Resolve to output directory and set file
@@ -20,6 +23,7 @@ module.exports = {
   // plugins: [new OpenBrowserPlugin({url: `http://localhost:${port}`})],
   // Set dev-server configuration
   mode: process.env.NODE_ENV || "development",
+  // devtool: false,
   devServer: {
     static: {
       directory: path.join(__dirname, "dist")
@@ -33,7 +37,7 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      title: 'Web3 Dapp',
+      title: 'Voting Contracts | resources',
       template: path.resolve(__dirname, 'public', 'templates', 'index.html'),
       filename: path.resolve(__dirname, 'dist', 'index.html') //relative to root of the application
     })

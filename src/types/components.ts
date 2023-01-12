@@ -1,5 +1,6 @@
 import React from "react"
 import { PageSetter } from "./pages"
+import { ethers } from "ethers"
 
 export type ComponentSetter = (component: JSX.Element) => void
 
@@ -26,7 +27,20 @@ export interface InitialNewInstanceValues {
   deadline: number | ""
 }
 
+export interface RegisteredContractsEventArgs {
+  contractAddress: string,
+  registrar: string,
+  resolver: string
+}
+
+export interface RegisteredVotingContract {
+  registrationArgs: RegisteredContractsEventArgs,
+  callTimes: number
+}
+
 export interface StartNewInstanceArgs {
+  playground: ethers.Contract,
+  registeredVotingContracts: Array<RegisteredVotingContract>,
   detailsHandling: DetailsHandling,
   initialNewInstanceValues: InitialNewInstanceValues,
   initialNewInstanceValuesSetter: React.Dispatch<React.SetStateAction<InitialNewInstanceValues>>

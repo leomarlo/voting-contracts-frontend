@@ -8,7 +8,7 @@ import { BasicButton } from "./buttons/BasicButton"
 // import * as VotingPlayground from '@leomarlo/voting-registry-contracts/src/examples/playground/Playground.sol/VotingPlayground.json' assert { type: "json" };
 import votingPlaygroundABI from '../abis/VotingPlayground'
 
-console.log(votingPlaygroundABI)
+// console.log(votingPlaygroundABI)
 
 
 const detailsStyle = {

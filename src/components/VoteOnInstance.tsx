@@ -63,7 +63,15 @@ import {
 interface VoteOnInstanceArgs {
   instance: VotingInstanceInfo
   playground: ethers.Contract,
-  updateInstanceInfos: (index: ethers.BigNumber, property: string | undefined) => Promise<null | undefined>
+  updateInstanceInfos: (
+    index: ethers.BigNumber,
+    property: string | undefined,
+    transactionHashAndAttempts?: {
+      transactionHash?: string,
+      successfulAttempt: boolean,
+      successfulImplement: boolean,
+      attempts: number
+    }) => Promise<null | undefined>
 }
 
 const formatAsCalldata = (calldata: string, withSelector: boolean = true) => {
@@ -94,12 +102,8 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
   let calldata = instance.internal.target.calldata
   let CalldataRows: JSX.Element = formatAsCalldata(calldata)
 
-  useEffect(() => {
-    console.log('votingDataOption', votingDataOption)
-  }, [votingDataOption])
 
   const handleVotingDataSelection = (event: any) => {
-    console.log("handleVotingDataSelection triggered", event.target.value)
     let tempVotingDataOption = { ...votingDataOption }
     if (event.target.value == "no") {
       tempVotingDataOption.no = true
@@ -150,34 +154,84 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
   }
 
   const submitImplementToChain = async (event: any) => {
-    console.log('Inside submitImplementToChain')
     try {
       let tx = await playground.implement(instance.internal.index, instance.internal.target.calldata)
-      setReceipt(await tx.wait())
+      let receipt = await tx.wait()
+      setReceipt(receipt)
+      try {
+        let status = await instance.external.votingContract.getStatus(instance.external.identifier)
+
+        if (status.toString() == "1") {
+          await updateInstanceInfos(
+            instance.internal.index,
+            "transactionHash",
+            {
+              transactionHash: receipt.transactionHash,
+              successfulAttempt: true,
+              successfulImplement: true,
+              attempts: (instance.chainInfo.attempts + 1)
+            })
+        } else if (status.toString() == "2") {
+          await updateInstanceInfos(
+            instance.internal.index,
+            "transactionHash",
+            {
+              transactionHash: receipt.transactionHash,
+              successfulAttempt: true,
+              successfulImplement: false,
+              attempts: (instance.chainInfo.attempts + 1)
+            })
+        } else {
+          await updateInstanceInfos(
+            instance.internal.index,
+            "transactionHash",
+            {
+              successfulAttempt: false,
+              successfulImplement: false,
+              attempts: (instance.chainInfo.attempts + 1)
+            })
+        }
+      } catch (err) {
+        console.log("Doens't have a status getter method.")
+      }
+
     } catch (err) {
       setReceipt("")
       // await notify(JSON.stringify(err))
+      await updateInstanceInfos(
+        instance.internal.index,
+        "transactionHash",
+        {
+          successfulAttempt: false,
+          successfulImplement: instance.chainInfo.successfulImplement,
+          attempts: (instance.chainInfo.attempts + 1)
+        })
     }
   }
 
   const tokenInfo: TokenInfo | undefined = instance.external.token
 
   const submisionButtonsEnabled = () => {
+    // TODO: Need to update the successfull attempts immediately after the submission
+    let implementationHappened: boolean = instance.chainInfo.successfulAttempt
     let implementingPermittedCondition: boolean = instance.external.implementingPermitted ? instance.external.implementingPermitted : false
     let statusCondition = instance.external.status ? instance.external.status == "4" : false
     let deadlineCondition: boolean = instance.external.ttl == 0
     let noInformationAboutPermissionOrStatus = (instance.external.status === undefined && instance.external.implementingPermitted === undefined)
     let voteCondition = instance.external.status ? (!["0", "1", "2", "4"].includes(instance.external.status)) : false
     return {
-      vote: (
-        noInformationAboutPermissionOrStatus ||
-        voteCondition
-      ),
-      implement: (
-        noInformationAboutPermissionOrStatus ||
-        (implementingPermittedCondition || statusCondition) ||
-        deadlineCondition // FIXME: Actually this condition should be revised!!
-      )
+      vote: (!implementationHappened) &&
+        (
+          noInformationAboutPermissionOrStatus ||
+          voteCondition
+        ),
+      implement: (!implementationHappened) &&
+        (
+          noInformationAboutPermissionOrStatus ||
+          (implementingPermittedCondition || statusCondition) ||
+          deadlineCondition || // FIXME: Actually this condition should be revised!!
+          implementationHappened
+        )
     }
   }
 
@@ -211,10 +265,23 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
         </div>
       </div>
       <hr />
-      <div>{JSON.stringify(receipt)}</div>
+      {typeof receipt === 'string' ? <></> :
+        <div>
+          {`Transaction was mined at ${receipt.transactionHash}`}
+        </div>
+      }
       <hr />
       <table style={{ verticalAlign: "middle" }} className="table">
         <tbody>
+          {instance.chainInfo.hash ?
+            <tr>
+              <th scope="col" >Transaction Hash</th>
+              <td>
+                {instance.chainInfo.hash}
+              </td>
+            </tr> :
+            <></>
+          }
           <tr>
             <th scope="col" >Target Function</th>
             <td>
@@ -239,11 +306,21 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
               {`${instance.external.deadline}   (${instance.external.ttl} seconds left)`}
             </td>
           </tr>
+          <tr>
+            <th scope="col" >Status</th>
+            <td>
+              {instance.external.status ? instance.external.status.toString() : "No Status"}
+            </td>
+          </tr>
 
           <tr>
             <th scope="col" >Quorum</th>
             <td>
-              {instance.external.quorum ? `${instance.external.quorum.value.toString()} (units: ${instance.external.quorum.inUnitsOf.toString()})` : "not known"}
+              {instance.external.quorum ?
+                ((instance.external.quorum.inUnitsOf.toString() == "0") ?
+                  `${instance.external.quorum.value.toString()}` + (instance.external.token ? " tokens" : "") :
+                  `${100 * parseInt(instance.external.quorum.value) / parseInt(instance.external.quorum.inUnitsOf)}% of total token supply.`
+                ) : "not known"}
             </td>
           </tr>
           <tr>

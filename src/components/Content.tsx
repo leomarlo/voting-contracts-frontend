@@ -62,12 +62,12 @@ const Content: React.FC<ContentArgs> = ({ detailsHandling }: ContentArgs) => {
     let newBalance = ethers.utils.formatEther(await token.balanceOf(account))
     setBalance(newBalance)
     displayBalanceFunction('current')
-    console.log('new Balance', newBalance)
-    console.log(votingPlaygroundABI)
+    // console.log('new Balance', newBalance)
+    // console.log(votingPlaygroundABI)
   }
 
   const displayBalanceFunction = (action: string) => {
-    console.log(votingPlaygroundABI)
+    // console.log(votingPlaygroundABI)
     // console.log(JSON.stringify(getPlaygroundABI()))
     if (action == 'current') {
       setDisplayBalance(balance)

@@ -155,11 +155,7 @@ const FormReadWriteCardTest: React.FC<FormReadWriteCardArgs> = (
         onChange={event => handleFormChange(i, event)} />)
   }
 
-  const testfnc = () => {
-    for (let j = 0; j < inputValues.length; j++) {
-      console.log(`The ${j}-th input value is ${inputValues[j]}`)
-    }
-  }
+
 
   // TODO: Maybe treat cardTitle and functionName differently.
   return (

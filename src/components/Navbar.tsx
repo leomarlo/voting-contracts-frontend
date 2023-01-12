@@ -5,7 +5,7 @@ import { ConnectWallet } from "./ConnectWallet"
 import { Info } from "./Info"
 import { ReactSVG } from "react-svg";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { VotingContractsLogo } from "./icons/Logo"
+// import { VotingContractsLogo } from "./icons/Logo"
 // import { ReactComponent as Logo } from '../img/Logo.svg';
 
 const navbarStyle = {
@@ -31,9 +31,9 @@ const Navbar: React.FC = () => {
         {/* <h3> Voting Contracts</h3> */}
         {/* <img src={Logo} alt="Voting Contract Logo" /> */}
         {/* <Logo /> */}
-        <div style={{ position: "relative", top: "-50px", left: "0%" }}>
+        {/* <div style={{ position: "relative", top: "-50px", left: "0%" }}>
           <VotingContractsLogo width="100%" />
-        </div>
+        </div> */}
         {/* <ReactSVG src="../img/Logo.svg" /> */}
       </div>
       <div className="col-4">

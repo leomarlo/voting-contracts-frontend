@@ -5,6 +5,7 @@ import { hexValue } from "ethers/lib/utils"
 import axios from 'axios'
 import votingContractABI from '../abis/GeneralVotingContract'
 import playgroundABI from '../abis/VotingPlayground'
+import { RegisteredContractsEventArgs } from "../types/components"
 
 const PROTOCOL = "https://"
 const BASE_URL = "raw.githubusercontent.com/leomarlo/voting-registry-contracts"
@@ -99,9 +100,21 @@ const getPlaygroundContract = async (chainId: number, fromHttpRequest?: boolean)
 
 const getPlaygroundViewFunctionsFromInterface = async (fromHttpRequest: boolean) => {
 
-  return Object.values((await getPlaygroundInterface(false)))
+  return Object.values((await getPlaygroundInterface(fromHttpRequest)))
     .filter(v => { return v.type == "function" })
     .filter(v => { return v.stateMutability == "view" })
+}
+
+const getPlaygroundMutableFunctionsFromInterface = async (fromHttpRequest: boolean) => {
+  return Object.values((await getPlaygroundInterface(fromHttpRequest)))
+    .filter(v => {
+      let cond: boolean =
+        v.type == "function" &&
+        (v.stateMutability == "payable" || v.stateMutability == "nonpayable") &&
+        !(v.name === undefined || v.name == "vote" || v.name == "start" || v.name == "implement")
+      return cond
+    })
+  // .filter(v => { return  })
 }
 
 const getContractAddress = async (chainId: number, contractName: string) => {
@@ -115,6 +128,20 @@ const getContractAddress = async (chainId: number, contractName: string) => {
 
 const getPlaygroundAddress = async (chainId: number) => {
   return await getContractAddress(chainId, "VotingPlayground")
+}
+
+
+async function getRegisteredVotingContracts(playgroundContract: ethers.Contract): Promise<Array<RegisteredContractsEventArgs>> {
+  let zero = ethers.constants.AddressZero
+  let flt = playgroundContract.filters.Registered(null, null, null)
+  const events = await playgroundContract.queryFilter(flt)
+  return events.map((e) => {
+    return {
+      contractAddress: e.args ? e.args.contractAddress : zero,
+      registrar: e.args ? e.args.registrar : zero,
+      resolver: e.args ? e.args.resolver : zero
+    }
+  })
 }
 
 interface ErcInterfaceFlags {
@@ -149,6 +176,9 @@ interface VotingInstanceExternalInfo {
 
 interface VotingInstanceChainInfo {
   hash?: string
+  successfulAttempt: boolean,
+  successfulImplement: boolean,
+  attempts: number
 }
 
 interface TargetInterface {
@@ -175,7 +205,8 @@ interface InstanceInternalInfoAndPointer {
 }
 
 interface VotingInstanceInfo extends InstanceInternalInfoAndPointer {
-  external: VotingInstanceExternalInfo
+  external: VotingInstanceExternalInfo,
+  chainInfo: VotingInstanceChainInfo
 }
 
 async function getPlaygroundInstancesFromEvents(playgroundContract: ethers.Contract): Promise<Array<InstanceInternalInfo>> {
@@ -203,7 +234,7 @@ async function getVotingInstanceExternalInfo(
   votingContractABI: Array<Object>,
   identifier: ethers.BigNumber): Promise<VotingInstanceExternalInfo> {
 
-  console.log('identifier', identifier)
+  // console.log('identifier', identifier)
 
   let signerAddress = await signer.getAddress()
 
@@ -306,6 +337,8 @@ export {
   getContractAddress,
   getPlaygroundInterface,
   getPlaygroundViewFunctionsFromInterface,
+  getPlaygroundMutableFunctionsFromInterface,
+  getRegisteredVotingContracts,
   getPlaygroundAddress,
   getPlaygroundContract,
   getVotingInstanceExternalInfo,

@@ -11,7 +11,7 @@ import { PlaygroundComp } from "./Playground"
 import { VotingIntegrationComp } from "./VotingIntegration"
 import { pageInfo } from "../utils/pages"
 import { Pages, PageSetter } from "../types/pages"
-import { VotingContractsLogo } from "./icons/Logo"
+// import { VotingContractsLogo } from "./icons/Logo"
 
 const mainStyle = {
   zIndex: 2,

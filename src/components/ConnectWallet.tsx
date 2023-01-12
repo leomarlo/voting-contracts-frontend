@@ -63,9 +63,9 @@ const ConnectWallet = () => {
     deactivate()
   }
 
-  useEffect(() => {
-    console.log(chainId, account, active);
-  });
+  // useEffect(() => {
+  //   console.log(chainId, account, active);
+  // });
 
   return (
     <div>
