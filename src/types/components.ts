@@ -24,7 +24,7 @@ export type FormSubmissionCallbackType = (
 export interface InitialNewInstanceValues {
   targetId: string,
   votingContract: string,
-  deadline: number | ""
+  deadline: string
 }
 
 export interface RegisteredContractsEventArgs {

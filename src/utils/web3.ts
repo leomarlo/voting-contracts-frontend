@@ -5,12 +5,14 @@ import { hexValue } from "ethers/lib/utils"
 import axios from 'axios'
 import votingContractABI from '../abis/GeneralVotingContract'
 import playgroundABI from '../abis/VotingPlayground'
+import votingRegistryABI from '../abis/VotingRegistry'
 import { RegisteredContractsEventArgs } from "../types/components"
 
 const PROTOCOL = "https://"
 const BASE_URL = "raw.githubusercontent.com/leomarlo/voting-registry-contracts"
 const BRANCH = "development"
 const URL_PLAYGROUND_ABI = PROTOCOL + BASE_URL + "/" + BRANCH + "/" + "artifacts/src/examples/playground/Playground.sol/VotingPlayground.json"
+const URL_VOTING_REGISTRY_ABI = PROTOCOL + BASE_URL + "/" + BRANCH + "/" + "artifacts/src/registration/registry/VotingRegistry.sol/VotingPlayground.json"
 const URL_DEPLOYMENT_INFO = PROTOCOL + BASE_URL + "/" + BRANCH + "/" + "scripts/verification/deploymentArgs/deploymentInfo.json"
 const URL_VOTING_INTERFACES = {
   URL_IVOTINGCONTRACT: PROTOCOL + BASE_URL + "/" + BRANCH + "/" + "artifacts/src/votingContractStandard/IVotingContract.sol/IVotingContract.json",
@@ -77,6 +79,19 @@ const getGeneralVotingInterface = async (fromHttpRequest: boolean) => {
   return votingContractABI
 }
 
+const getVotingRegistryInterface = async (fromHttpRequest: boolean) => {
+  if (fromHttpRequest) {
+    let res: Array<Object> = []
+    let interfaceURLs = Object.values(URL_VOTING_REGISTRY_ABI)
+    for (let i = 0; i < interfaceURLs.length; i++) {
+      let interfaceURL = interfaceURLs[i]
+      res = res.concat(await getABI(interfaceURL))
+    }
+    return res
+  }
+  return votingRegistryABI
+}
+
 const getPlaygroundInterface = async (fromHttpRequest: boolean) => {
   if (fromHttpRequest) return await getEthersInterface(URL_PLAYGROUND_ABI)
   return playgroundABI
@@ -131,10 +146,10 @@ const getPlaygroundAddress = async (chainId: number) => {
 }
 
 
-async function getRegisteredVotingContracts(playgroundContract: ethers.Contract): Promise<Array<RegisteredContractsEventArgs>> {
+async function getRegisteredVotingContracts(registry: ethers.Contract): Promise<Array<RegisteredContractsEventArgs>> {
   let zero = ethers.constants.AddressZero
-  let flt = playgroundContract.filters.Registered(null, null, null)
-  const events = await playgroundContract.queryFilter(flt)
+  let flt = registry.filters.Registered(null, null, null)
+  const events = await registry.queryFilter(flt)
   return events.map((e) => {
     return {
       contractAddress: e.args ? e.args.contractAddress : zero,
@@ -334,6 +349,7 @@ export {
   getABI,
   getPlaygroundABI,
   getGeneralVotingInterface,
+  getVotingRegistryInterface,
   getContractAddress,
   getPlaygroundInterface,
   getPlaygroundViewFunctionsFromInterface,

@@ -22,6 +22,7 @@ import {
   VotingInstanceInfo,
   getPlaygroundInstancesFromEvents,
   getGeneralVotingInterface,
+  getVotingRegistryInterface,
   InstanceInternalInfo,
   InstanceInternalInfoAndPointer,
   getRegisteredVotingContracts
@@ -142,7 +143,9 @@ const setPlaygroundInstances = async (
   setInstanceDisplayInfo: Dispatch<SetStateAction<Array<instanceDisplayInfo>>>,
   setPlayground: Dispatch<SetStateAction<ethers.Contract>>,
   setDisplayedInstances: Dispatch<SetStateAction<Array<number>>>,
-  setRegisteredVotingContracts: Dispatch<Array<RegisteredVotingContract>>) => {
+  setRegisteredVotingContracts: Dispatch<Array<RegisteredVotingContract>>,
+  setRegistry: Dispatch<SetStateAction<ethers.Contract>>) => {
+
 
   let playgroundContract = (await getPlaygroundContract(chainId)).connect(signer)
   let infos = await getPlaygroundInstances(signer, playgroundContract)
@@ -150,15 +153,18 @@ const setPlaygroundInstances = async (
   setInstanceDisplayInfo(infos.map((_, i) => { return { index: i, selected: false } }))
   setPlayground(playgroundContract)
   setDisplayedInstances(infos.map((_, i) => i))
-  // let registeredVotingContracts: Array<RegisteredContractsEventArgs> = await getRegisteredVotingContracts(playgroundContract)
-  // console.log(registeredVotingContracts)
-  // setRegisteredVotingContracts(registeredVotingContracts.map((evtargs) => {
-  //   let entry: RegisteredVotingContract = {
-  //     registrationArgs: evtargs,
-  //     callTimes: 0
-  //   }
-  //   return entry
-  // }))
+  let votingRegistryInterface = await getVotingRegistryInterface(false)
+  let _registry = new ethers.Contract(await playgroundContract.VOTING_REGISTRY(), votingRegistryInterface, signer)
+  setRegistry(_registry)
+  let registeredVotingContracts: Array<RegisteredContractsEventArgs> = await getRegisteredVotingContracts(_registry)
+  console.log(registeredVotingContracts)
+  setRegisteredVotingContracts(registeredVotingContracts.map((evtargs) => {
+    let entry: RegisteredVotingContract = {
+      registrationArgs: evtargs,
+      callTimes: 0
+    }
+    return entry
+  }))
 
 }
 
@@ -169,6 +175,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
 
   const { chainId, library } = useWeb3React<Web3Provider>()
   const [playground, setPlayground] = useState<ethers.Contract>(new ethers.Contract(ethers.constants.AddressZero, []))
+  const [registry, setRegistry] = useState<ethers.Contract>(new ethers.Contract(ethers.constants.AddressZero, []))
   const [registeredVotingContracts, setRegisteredVotingContracts] = useState<Array<RegisteredVotingContract>>([])
   const [instances, setInstances] = useState<Array<VotingInstanceInfo>>([] as VotingInstanceInfo[])
   const [displayedInstances, setDisplayedInstances] = useState<Array<number>>([])
@@ -190,7 +197,8 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
         setSelectedInstance,
         setPlayground,
         setDisplayedInstances,
-        setRegisteredVotingContracts)
+        setRegisteredVotingContracts,
+        setRegistry)
       // setRegisteredVotingContracts()
       // TODO: getRegisteredVotingContracts
     } else {
@@ -199,6 +207,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
       setSelectedInstance([] as instanceDisplayInfo[])
       setPlayground(new ethers.Contract(ethers.constants.AddressZero, []))
       setRegisteredVotingContracts([])
+      setRegistry(new ethers.Contract(ethers.constants.AddressZero, []))
     }
 
 
@@ -294,7 +303,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
     if (initialNewInstanceValues.deadline == "") {
       return ""
     } else {
-      return (new Date(currentTimeInMilliseconds + initialNewInstanceValues.deadline * 1000)).toLocaleString()
+      return (new Date(currentTimeInMilliseconds + parseInt(initialNewInstanceValues.deadline) * 1000)).toLocaleString()
     }
   }
 
