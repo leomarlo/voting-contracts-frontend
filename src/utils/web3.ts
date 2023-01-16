@@ -8,6 +8,8 @@ import playgroundABI from '../abis/VotingPlayground'
 import votingRegistryABI from '../abis/VotingRegistry'
 import { RegisteredContractsEventArgs } from "../types/components"
 
+
+
 const PROTOCOL = "https://"
 const BASE_URL = "raw.githubusercontent.com/leomarlo/voting-registry-contracts"
 const BRANCH = "development"
@@ -157,6 +159,46 @@ async function getRegisteredVotingContracts(registry: ethers.Contract): Promise<
       resolver: e.args ? e.args.resolver : zero
     }
   })
+}
+
+const getBlockexplorerBaseUrlFromChainId = (chainId: number, forApiCall: boolean) => {
+  let baseurl = ""
+  let apiOption = forApiCall ? "api-" : ""
+  if (chainId == 137 || chainId == 80001) {
+    let testnetornot = chainId == 137 ? "" : "testnet"
+    baseurl = `https://${apiOption}${testnetornot}.polygonscan.com`
+  } else {
+    let testnetornot = chainId == 1 ? "" : reverseResolveChainId[chainId]
+    baseurl = `https://${apiOption}${testnetornot}.etherscan.io`
+  }
+  return baseurl
+}
+
+async function getContractABIFromEtherscan(contractAddress: string, apiKey: string, chainId: number) {
+
+  // 137: "polygon",
+  // 80001: "mumbai",
+  // TODO.... different API key for polygon/matic and ethereum + ethereum testnets!
+
+  let baseurl = getBlockexplorerBaseUrlFromChainId(chainId, true)
+
+  let url = baseurl + `/api?module=contract&action=getabi&address=${contractAddress}&apikey=${apiKey}`
+  console.log('The api call is ', url)
+  try {
+    let res = await axios.get(url)
+    let result = res.data.result
+    console.log('inside the api request')
+    try {
+      console.log('returning parsed JSON works', JSON.parse(result))
+      return JSON.parse(result)
+    } catch (err) {
+      return result
+    }
+  } catch (err) {
+    console.log(err)
+    return {}
+  }
+
 }
 
 interface ErcInterfaceFlags {
@@ -359,6 +401,8 @@ export {
   getPlaygroundContract,
   getVotingInstanceExternalInfo,
   getPlaygroundInstancesFromEvents,
+  getBlockexplorerBaseUrlFromChainId,
+  getContractABIFromEtherscan,
   ErcInterfaceFlags,
   TokenInfo,
   TargetInterface,

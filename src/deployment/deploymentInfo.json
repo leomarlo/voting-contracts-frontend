@@ -2,28 +2,28 @@
   "localhost": {
     "MajorityVoteWithNFTQuorumAndOptionalDVGuard": {
       "address": "0x07803d183f85D31AbE3D0A7C6f7479A99363a33A",
-      "date": "Fri Jan 13 2023 06:39:22 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:53 GMT+0100 (Central European Standard Time)",
       "gasLimit": 2002784,
       "path": "src/implementations/votingContracts/SimpleMajorityVote/MajorityVoteWithNFTQuorumAndOptionalDVGuard.sol",
       "arguments": []
     },
     "PlainMajorityVoteWithQuorum": {
       "address": "0x4BF632e194D498F733d256AB13183004eA428788",
-      "date": "Fri Jan 13 2023 06:39:24 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:53 GMT+0100 (Central European Standard Time)",
       "gasLimit": 1589925,
       "path": "src/implementations/votingContracts/SimpleMajorityVote/PlainMajorityVoteWithQuorum.sol",
       "arguments": []
     },
     "SimpleSnapshotWithoutToken": {
       "address": "0x346082DB603d864a2a1ab16B13125bB6B16c7e03",
-      "date": "Fri Jan 13 2023 06:39:23 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:53 GMT+0100 (Central European Standard Time)",
       "gasLimit": 1014285,
       "path": "src/implementations/votingContracts/OnlyStartAndVote/SimpleSnapshotWithoutToken.sol",
       "arguments": []
     },
     "VotingRegistry": {
       "address": "0xA94A3572343f0684FB2C3584853992D47e4F9261",
-      "date": "Fri Jan 13 2023 06:39:22 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:52 GMT+0100 (Central European Standard Time)",
       "gasLimit": 602163,
       "path": "src/registration/registry/VotingRegistry.sol",
       "arguments": [
@@ -32,7 +32,7 @@
     },
     "VotingPlayground": {
       "address": "0x3b8cf625a921F5A28370c74EF81150DF4765cC9A",
-      "date": "Fri Jan 13 2023 06:39:25 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:54 GMT+0100 (Central European Standard Time)",
       "gasLimit": 7036199,
       "path": "src/implementations/registration/RegistrarAndResolver.sol",
       "arguments": [
@@ -47,7 +47,7 @@
     },
     "PlaygroundVotingBadge": {
       "address": "0x2f45F7b8ef365B51ca28Ad7Adde4E78b35688a90",
-      "date": "Fri Jan 13 2023 06:39:25 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:54 GMT+0100 (Central European Standard Time)",
       "gasLimit": 3271033,
       "path": "src/examples/playground/VotingBadge.sol",
       "arguments": [
@@ -57,7 +57,7 @@
     },
     "ControllableRegistrar": {
       "address": "0x88d64Af67f4155823c3291Bf64f38e5624250e80",
-      "date": "Fri Jan 13 2023 06:39:23 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:53 GMT+0100 (Central European Standard Time)",
       "gasLimit": 3316965,
       "path": "src/implementations/registration/RegistrarAndResolver.sol",
       "arguments": [
@@ -70,21 +70,21 @@
     },
     "ResolverWithControl": {
       "address": "0x23b8F911CD48dAecE4963f2CD40C56De2237A3B0",
-      "date": "Fri Jan 13 2023 06:39:23 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:53 GMT+0100 (Central European Standard Time)",
       "gasLimit": 800707,
       "path": "src/implementations/registration/Resolver.sol",
       "arguments": []
     },
     "DummyToken": {
       "address": "0xF5c55dcE789b091E926A300E080646DF6d7cBE5e",
-      "date": "Fri Jan 13 2023 06:39:25 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:54 GMT+0100 (Central European Standard Time)",
       "gasLimit": 1369130,
       "path": "src/examples/dummies/ERC20Token.sol",
       "arguments": []
     },
     "DummyNFT": {
       "address": "0xD29B912635EF2E5F0Bfd9F5dB41DBCDdBBE1426b",
-      "date": "Fri Jan 13 2023 06:39:26 GMT+0100 (Central European Standard Time)",
+      "date": "Sun Jan 15 2023 19:20:54 GMT+0100 (Central European Standard Time)",
       "gasLimit": 2245964,
       "path": "src/examples/dummies/ERC721Token.sol",
       "arguments": []
@@ -379,6 +379,97 @@
       "arguments": [
         "\"0x9452d78d\""
       ]
+    }
+  },
+  "goerli": {
+    "VotingRegistry": {
+      "address": "0xcb8E51faBBE169DF9D8C43f60F02565D71A90099",
+      "date": "Sun Jan 15 2023 23:44:04 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 602163,
+      "path": "src/registration/registry/VotingRegistry.sol",
+      "arguments": [
+        "\"0x9452d78d\""
+      ]
+    },
+    "MajorityVoteWithNFTQuorumAndOptionalDVGuard": {
+      "address": "0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e",
+      "date": "Sun Jan 15 2023 23:44:15 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 2002784,
+      "path": "src/implementations/votingContracts/SimpleMajorityVote/MajorityVoteWithNFTQuorumAndOptionalDVGuard.sol",
+      "arguments": []
+    },
+    "SimpleSnapshotWithoutToken": {
+      "address": "0xe5eE54159725Da615A96D3714F6af88A14C37e55",
+      "date": "Sun Jan 15 2023 23:44:26 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 1014285,
+      "path": "src/implementations/votingContracts/OnlyStartAndVote/SimpleSnapshotWithoutToken.sol",
+      "arguments": []
+    },
+    "ResolverWithControl": {
+      "address": "0x4390b4c2ED28f26E382d648F3a72dAB2821E4dDD",
+      "date": "Sun Jan 15 2023 23:44:56 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 802007,
+      "path": "src/implementations/registration/Resolver.sol",
+      "arguments": []
+    },
+    "ControllableRegistrar": {
+      "address": "0x7dc99017DfBd0632c211e0323bc7D92D81C452FE",
+      "date": "Sun Jan 15 2023 23:45:16 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 3327641,
+      "path": "src/implementations/registration/RegistrarAndResolver.sol",
+      "arguments": [
+        "\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\"",
+        "\"0xcb8E51faBBE169DF9D8C43f60F02565D71A90099\"",
+        "\"0x4390b4c2ED28f26E382d648F3a72dAB2821E4dDD\"",
+        "\"\\\"Official Registrar for Voting Contracts\\\"\"",
+        "\"\\\"REGV1\\\"\""
+      ]
+    },
+    "PlainMajorityVoteWithQuorum": {
+      "address": "0x10fE87731dd857a521990b0325cD6b8cde6e00B0",
+      "date": "Sun Jan 15 2023 23:45:28 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 1589925,
+      "path": "src/implementations/votingContracts/SimpleMajorityVote/PlainMajorityVoteWithQuorum.sol",
+      "arguments": []
+    },
+    "VotingPlayground": {
+      "address": "0xBdE58dB64887cA83Af1777459Fe3cD2fB19f3426",
+      "date": "Sun Jan 15 2023 23:45:40 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 7227794,
+      "path": "src/examples/playground/Playground.sol",
+      "arguments": [
+        "\"0xcb8E51faBBE169DF9D8C43f60F02565D71A90099\"",
+        "[\"0x018f92cafb\",\"0x01a0e8ca96\",\"0x0132d7b3b9\",\"0x01fabfdb1d\",\"0x01a6629027\",\"0x01ef4a45a1\",\"0x011d0a40c9\",\"0x003d974365\",\"0x00c519fdc5\",\"0x005698d48a\",\"0x00ec9ad785\",\"0x004dea6274\",\"0x003048760d\",\"0x0053ead2d3\",\"0x00df610fcd\",\"0x0091fae275\",\"0x007336aaf0\",\"0x00204d899d\",\"0x00458b8f48\"]",
+        "[\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0x10fE87731dd857a521990b0325cD6b8cde6e00B0\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0x10fE87731dd857a521990b0325cD6b8cde6e00B0\",\"0x10fE87731dd857a521990b0325cD6b8cde6e00B0\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\",\"0xcaD4b94b32ed1fBd0007943d5A8F6d01fFB5319e\"]",
+        "[432000,86400,1209600,432000,432000,432000,432000,432000,90,86400,86400,86400,300,300,300,300,300,300,300]",
+        "[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]",
+        "[true,true,true,true,true,true,true,true,true,false,true,true,false,false,true,true,true,true,true]",
+        "\"0xf81c46173674ae2c93082a62e206c813fef8df55ccebfdd187e6daa0895a7530\""
+      ]
+    },
+    "PlaygroundVotingBadge": {
+      "address": "0x9E0B458fF19de7A55CAB495Da02f72f800AB6675",
+      "date": "Sun Jan 15 2023 23:45:51 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 3276573,
+      "path": "src/examples/playground/VotingBadge.sol",
+      "arguments": [
+        "\"Playground Voting Badge\"",
+        "\"PLAY\""
+      ]
+    },
+    "DummyToken": {
+      "address": "0x80AddF788B463668821A7D488A88A267F0eE4870",
+      "date": "Sun Jan 15 2023 23:46:02 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 1371730,
+      "path": "src/examples/dummies/ERC20Token.sol",
+      "arguments": []
+    },
+    "DummyNFT": {
+      "address": "0x49316981860A30fFa54bacb66946A3094812542f",
+      "date": "Sun Jan 15 2023 23:46:17 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 2248564,
+      "path": "src/examples/dummies/ERC721Token.sol",
+      "arguments": []
     }
   }
 }
