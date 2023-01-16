@@ -35,12 +35,17 @@ export interface RegisteredContractsEventArgs {
 
 export interface RegisteredVotingContract {
   registrationArgs: RegisteredContractsEventArgs,
+  instantiation: {
+    disabledForTheChosenSelector: boolean,
+    chosenSelector?: string
+  }
   callTimes: number
 }
 
 export interface StartNewInstanceArgs {
   playground: ethers.Contract,
   registeredVotingContracts: Array<RegisteredVotingContract>,
+  registeredVotingContractsSetter: React.Dispatch<React.SetStateAction<Array<RegisteredVotingContract>>>,
   detailsHandling: DetailsHandling,
   initialNewInstanceValues: InitialNewInstanceValues,
   initialNewInstanceValuesSetter: React.Dispatch<React.SetStateAction<InitialNewInstanceValues>>

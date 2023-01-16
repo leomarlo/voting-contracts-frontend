@@ -15,6 +15,7 @@ import { bootstrapColors } from "../utils/bootstrap"
 interface VotingParams {
   active: boolean,
   address?: string,
+  abi?: Array<Object>,
   inputs?: Array<{
     name: string,
     type: string,
@@ -26,6 +27,7 @@ interface VotingParams {
 const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   playground,
   registeredVotingContracts,
+  registeredVotingContractsSetter,
   detailsHandling,
   initialNewInstanceValues,
   initialNewInstanceValuesSetter
@@ -104,6 +106,23 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         initialNewInstanceValuesTemp.votingContract = votingContractAddress
         initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
       }
+      if (library) {
+        playground.connect(library.getSigner()).getAssignedContract(event.value).then((contract: string) => {
+          // console.log('The chosen selector has the following contract', res)
+          let registeredVotingContractsTemp = [...registeredVotingContracts]
+          for (const registeredContract of registeredVotingContractsTemp) {
+            if (registeredContract.registrationArgs.contractAddress == contract) {
+              registeredContract.instantiation.chosenSelector = event.value
+              registeredContract.instantiation.disabledForTheChosenSelector = false
+            } else {
+              registeredContract.instantiation.disabledForTheChosenSelector = true
+            }
+          }
+          registeredVotingContractsSetter(registeredVotingContractsTemp)
+          setVotingContractAddress(contract)
+        })
+      }
+
     }
   }
 
@@ -147,8 +166,6 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     if (blockscannerApiKey.length != 34) {
       setBlockscannerApiKey("Needs to have 34 characters!")
     }
-    console.log('votingContractAddress', votingContractAddress)
-    console.log('blockscannerApiKey', blockscannerApiKey)
     setDisplayTypeOfInputFields("inherit")
     getContractABIFromEtherscan(
       votingContractAddress,
@@ -156,12 +173,13 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
       chainId ? chainId : 1
     ).then(
       (data) => {
-        console.log('inside get ABI and the result is')
+        // console.log('inside get ABI and the result is')
+
         for (const fnc of data) {
           console.log('function is', fnc)
           if (fnc["name" as keyof typeof fnc] == "encodeParameters") {
-            console.log("We found the encode Parameters function", fnc)
-            console.log("The inputs are", fnc["inputs" as keyof typeof fnc])
+            // console.log("We found the encode Parameters function", fnc)
+            // console.log("The inputs are", fnc["inputs" as keyof typeof fnc])
             let votingParams: VotingParams = {
               active: true,
               address: votingContractAddress,
@@ -173,6 +191,10 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
                   internalType: inp.internalType
                 }
               })
+            }
+            if (typeof data !== "string") {
+              console.log('Type of data is', typeof data)
+              votingParams.abi = data
             }
             setVotingParams(votingParams)
           }
@@ -216,16 +238,24 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   }
 
   const handleEncodeParameters = async (event: any) => {
-    let ifc = await getGeneralVotingInterface(false)
-    let votingContract = new ethers.Contract(votingContractAddress, ifc)
+    // let ifc = await getGeneralVotingInterface(false)
     const [parameters, valid] = getInstanceParameters()
-    if (library && valid) {
-      let signer = library.getSigner()
-      let encoded = await votingContract.connect(signer).encodeParameters(...parameters)
-      setEncodedVotingParameters(encoded.toString())
+    if (votingParams.abi && library && valid) {
+      let votingContract = new ethers.Contract(votingContractAddress, votingParams.abi)
+      let encoded = ""
+      try {
+        let signer = library.getSigner()
+        encoded = await votingContract.connect(signer).encodeParameters(...parameters)
+        console.log('encoded', encoded)
+      } catch (err) {
+        console.log('encoding error', err)
+      }
+      try {
+        setEncodedVotingParameters(encoded.toString())
+      } catch (err) {
+        console.log('setting error', err)
+      }
     }
-
-
   }
 
   return (
@@ -296,7 +326,8 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
             options={registeredVotingContracts.map((ct) => {
               return {
                 value: ct.registrationArgs.contractAddress,
-                label: ct.registrationArgs.contractAddress
+                label: ct.registrationArgs.contractAddress,
+                disabled: ct.instantiation.disabledForTheChosenSelector
               }
             })}
             className="basic-select"
@@ -388,10 +419,11 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
             className="btn btn-primary"
             style={{
               display: "inline-block", minWidth: "100px", width: "10%",
-              padding: "5px"
+              padding: "15px"
             }}
             onClick={handleEncodeParameters}>Encode</div>
           <input
+            width="200px"
             id="votingParameters"
             value={encodedVotingParameters}
             onChange={handleEncodedParametersChange}>

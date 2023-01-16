@@ -161,6 +161,9 @@ const setPlaygroundInstances = async (
   setRegisteredVotingContracts(registeredVotingContracts.map((evtargs) => {
     let entry: RegisteredVotingContract = {
       registrationArgs: evtargs,
+      instantiation: {
+        disabledForTheChosenSelector: false
+      },
       callTimes: 0
     }
     return entry
@@ -429,6 +432,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
                       <StartNewInstance
                         playground={playground}
                         registeredVotingContracts={registeredVotingContracts}
+                        registeredVotingContractsSetter={setRegisteredVotingContracts}
                         detailsHandling={detailsHandling}
                         initialNewInstanceValues={initialNewInstanceValues}
                         initialNewInstanceValuesSetter={setInitialNewInstanceValues} />)
