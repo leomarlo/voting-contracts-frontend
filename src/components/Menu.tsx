@@ -69,14 +69,15 @@ const Menu: React.FC<MenuArgs> = ({ detailsHandling }: MenuArgs) => {
   }
 
 
-  const MenuItems = Object.keys(Pages)
-    .filter((v) => isNaN(Number(v)))
-    .map((page) => {
-      return <MenuItem item={Pages[page as keyof typeof Pages]} changeSelectedPage={changeSelectedPage} />
-    })
   return (
     <>
-      {MenuItems}
+      {
+        Object.keys(Pages)
+          .filter((v) => isNaN(Number(v)))
+          .map((page) => {
+            return <MenuItem item={Pages[page as keyof typeof Pages]} changeSelectedPage={changeSelectedPage} />
+          })
+      }
     </>
   )
 }

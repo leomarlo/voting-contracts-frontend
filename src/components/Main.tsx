@@ -5,6 +5,7 @@ import React, { useState, CSSProperties } from "react"
 import { Menu } from "./Menu"
 import { Content } from "./Content"
 import { Details } from "./Details"
+import { AboutComp } from "./About"
 import { VotingContractsComp } from "./VotingContracts"
 import { DetailsHandling, ComponentSetter } from "../types/components"
 import { PlaygroundComp } from "./Playground"
@@ -57,7 +58,9 @@ const Main: React.FC = () => {
 
 
   const getContentDOM = () => {
-    if (selectedPage == Pages.VotingContracts) {
+    if (selectedPage == Pages.About) {
+      return (<AboutComp detailsHandling={detailsHandling} />)
+    } else if (selectedPage == Pages.VotingContracts) {
       return (<VotingContractsComp detailsHandling={detailsHandling} />)
     } else if (selectedPage == Pages.VotingPlayground) {
       return (<PlaygroundComp detailsHandling={detailsHandling} />)

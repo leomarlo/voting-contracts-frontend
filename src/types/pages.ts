@@ -1,4 +1,5 @@
 enum Pages {
+  About,
   VotingContracts,
   VotingPlayground,
   VotingContractIntegration,
