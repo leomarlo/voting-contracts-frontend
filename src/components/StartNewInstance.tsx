@@ -54,7 +54,6 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   const [deadline, setDeadline] = useState<string>("")
   const [votingParams, setVotingParams] = useState<VotingParams>({ active: false })
   const [blockscannerApiKey, setBlockscannerApiKey] = useState<string>("")
-  const [proceedWithApiKey, setProceedWithApiKey] = useState<boolean>(true)
   const [displayTypeOfInputFields, setDisplayTypeOfInputFields] = useState<"inherit" | "none">("none")
   const [encodedVotingParameters, setEncodedVotingParameters] = useState<string>("")
   const isAddress = new RegExp(`^0x[0-9A-Fa-f]{40}$`)
@@ -165,6 +164,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   const fetchVotingParameters = (event: any) => {
     if (blockscannerApiKey.length != 34) {
       setBlockscannerApiKey("Needs to have 34 characters!")
+      return
     }
     setDisplayTypeOfInputFields("inherit")
     getContractABIFromEtherscan(
@@ -207,10 +207,6 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     setBlockscannerApiKey(event.target.value)
   }
 
-  const handleProceedWithoutApiKey = (event: any) => {
-    setProceedWithApiKey(event.target.checked)
-  }
-
   const handleVotingParamsUpdate = (ev: { target: { id: string, value: string } }) => {
     let hasNumber = ev.target.id.match(/\d+/)
     if (hasNumber !== null) {
@@ -220,9 +216,13 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
       let votingParamsTemp = { ...votingParams }
       if (votingParamsTemp.inputs) {
         votingParamsTemp.inputs[index].value = ev.target.value
+        if (votingParamsTemp.inputs[index].name == "duration" || votingParamsTemp.inputs[index].name == "deadline") {
+          let initialNewInstanceValuesTemp = { ...initialNewInstanceValues }
+          initialNewInstanceValuesTemp.deadline = ev.target.value
+          initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
+        }
       }
       setVotingParams(votingParamsTemp)
-
     }
   }
 
@@ -259,7 +259,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   }
 
   return (
-    <>
+    <div style={{ overflowY: "scroll", maxHeight: "90vh" }}>
       <div style={{ textAlign: "right" }}>
 
         {/* {JSON.stringify(initialNewInstanceValues)} */}
@@ -347,28 +347,24 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
       <hr />
       <div>
         <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
-          <input
-            type="checkbox"
-            checked={proceedWithApiKey}
-            value={"proceedwithout"}
-            id="choooseToProceedWithoutApiKey"
-            onChange={handleProceedWithoutApiKey} />
-          <label style={{ paddingLeft: "10px" }}>
-            Proceed with Blockscanner API calls
-          </label>
+          The voting parameters configure the voting instance. Typical fields include the duration
+          of the poll, the token address that should be used or the quorum that makes a poll valid.
+          Ideally the voting contract is verified on a blockscanner, or the maintainers of the voting
+          contract explain how to configure their voting contract in their docs.
         </div>
         <div style={{ display: "inline-block", width: "40%", padding: "5px" }}>
           <button
-            disabled={proceedWithApiKey && blockscannerApiKey.length == 0}
+            disabled={(blockscannerApiKey.length == 0) || chainId == 1337}
             onClick={fetchVotingParameters}
             className="btn btn-primary">
-            Proceed to voting parameters </button>
+            Encode voting parameters
+          </button>
         </div>
         <div style={{ display: "inline-block", width: "60%", padding: "5px", textAlign: "right" }}>
           <input
             width="60%"
             placeholder={(chainId == 137 || chainId == 80001) ? "Enter Polygonscan API key" : "Enter Etherscan API key"}
-            disabled={!proceedWithApiKey}
+            disabled={false}
             value={blockscannerApiKey}
             onChange={(event) => handleChangeBlockscannerApiKey(event)}
           />
@@ -400,8 +396,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
                       {`${inp.name} (${inp.type}):  `}
                     </div>
                     <input
-
-                      style={{ textAlign: "left", display: "inline-block", width: "42%", padding: "5px" }}
+                      style={{ fontFamily: "monospace", textAlign: "left", display: "inline-block", width: "42%", padding: "5px" }}
                       key={`New instance input field ${j}`}
                       id={`New instance input field ${j}`}
                       value={inp.value}
@@ -418,21 +413,30 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           <div
             className="btn btn-primary"
             style={{
-              display: "inline-block", minWidth: "100px", width: "10%",
+              display: "inline-block", minWidth: "100%", width: "100%",
               padding: "15px"
             }}
             onClick={handleEncodeParameters}>Encode</div>
-          <input
-            width="200px"
-            id="votingParameters"
-            value={encodedVotingParameters}
-            onChange={handleEncodedParametersChange}>
-          </input>
+
         </div>
+        <hr />
 
       </div>
+      <div style={{ marginBottom: "20px" }}>
+        <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+          Bytes-encoded Voting Parameters:
+        </div>
+        <textarea
+          style={{ fontFamily: "monospace" }}
+          cols={63}
+          rows={4}
+          id="votingParameters"
+          value={encodedVotingParameters}
+          onChange={handleEncodedParametersChange}>
+        </textarea>
+      </div>
 
-    </>
+    </div>
 
   )
 }

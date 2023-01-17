@@ -384,7 +384,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
               <th scope="col" style={targetColStyle}>target function</th>
               <th scope="col" style={votingContractColStyle}>voting contract</th>
               <th scope="col" style={deadlineColStyle}>deadline (locale)</th>
-              <th scope="col" style={deadlineInSecsColStyle}>deadline (sec. remaining)</th>
+              <th scope="col" style={deadlineInSecsColStyle}>duration (in sec)</th>
               <th scope="col" style={statusColStyle}>status</th>
               <th scope="col" style={buttonColStyle}></th>
             </tr>

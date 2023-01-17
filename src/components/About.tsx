@@ -8,7 +8,7 @@ interface AboutArgs {
 }
 
 const AboutComp: React.FC<AboutArgs> = ({ detailsHandling }: AboutArgs) => {
-  let thisPageInfo: PageInfo = pageInfo[Pages.VotingContractIntegration]
+  let thisPageInfo: PageInfo = pageInfo[Pages.About]
 
   const Details = (
     <>
