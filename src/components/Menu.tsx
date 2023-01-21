@@ -52,8 +52,8 @@ const MenuItem: React.FC<MenuItemArgs> = ({ changeSelectedPage, item, selectedPa
         ...menuItemStyle,
         backgroundColor: (
           overItem == true ?
-            (isSelected ? "#dda" : "#ddd") :
-            (isSelected ? "#bb8" : "#bbb")
+            (isSelected ? "#bb8" : "#dda") :
+            (isSelected ? "#bbb" : "#ddd")
         )
       }}
       key={thisItemInfo.key + '-item'}
