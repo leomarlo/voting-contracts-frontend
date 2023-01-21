@@ -8,6 +8,14 @@ import {
   getContractABIFromEtherscan,
   getGeneralVotingInterface
 } from "../utils/web3"
+import {
+  isBytesN,
+  type2RegexTest,
+  isBytes,
+  isBytes4,
+  isAddress,
+  isUint
+} from "../utils/format"
 import { ethers } from 'ethers'
 import Select, { SingleValue } from 'react-select'
 import { bootstrapColors } from "../utils/bootstrap"
@@ -23,6 +31,8 @@ interface VotingParams {
     value: string
   }>
 }
+
+interface CalldataInputValues { value: string, name: string, type: string, test: RegExp }
 
 const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   playground,
@@ -44,7 +54,8 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   const [votingContractAddress, setVotingContractAddress] = useState<string>("")
   const [initialNewInstanceValuesFromPlayground, setInitialNewInstanceValuesFromPlayground] = useState<{
     targetId: string,
-    votingContract: string, deadline: string
+    votingContract: string,
+    deadline: string
   }>({
     targetId: "",
     votingContract: "",
@@ -53,11 +64,13 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
 
   const [deadline, setDeadline] = useState<string>("")
   const [votingParams, setVotingParams] = useState<VotingParams>({ active: false })
+  const [votingMetaparameters, setVotingMetaparameters] = useState<undefined | { minQuorum: string, minDuration: string, token: string }>(undefined)
+  const [calldataInputValues, setCalldataInputValues] = useState<Array<CalldataInputValues>>([])
   const [calldata, setCalldata] = useState<string>("0x")
+  const [calldataEncodingMessage, setCalldataEncodingMessage] = useState<Array<string>>([])
   const [blockscannerApiKey, setBlockscannerApiKey] = useState<string>("")
   const [displayTypeOfInputFields, setDisplayTypeOfInputFields] = useState<"inherit" | "none">("none")
   const [encodedVotingParameters, setEncodedVotingParameters] = useState<string>("")
-  const isAddress = new RegExp(`^0x[0-9A-Fa-f]{40}$`)
 
   const linkStyle: CSSProperties = { color: 'lightcoral', fontWeight: "bold" }
 
@@ -90,10 +103,38 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     detailsHandling.focusOnDetailsSetter(false)
     detailsHandling.detailsSetter(<></>)
   }
+
+
   // handle selector choices
+  const setInitialCalldataInputValuesFromSelector = (value: string) => {
+    let fnct = playground.interface.getFunction(value)
+    console.log('function is', fnct)
+    if (fnct) {
+      let _calldataInputValues: Array<CalldataInputValues> = fnct.inputs.map((inp) => {
+        return {
+          name: inp.name,
+          type: inp.type,
+          test: type2RegexTest(inp.type),
+          value: ""
+        }
+      })
+      setCalldataInputValues(_calldataInputValues)
+    }
+  }
 
   const handleChooseFromPlaygroundSelectors = (event: any) => {
     setChooseFromPlaygroundSelectors(event.target.checked)
+  }
+
+  const fetchVotingMetaparameters = async (selector: string) => {
+    let vmp = await playground.votingMetaParams(selector)
+    console.log('vmp', vmp)
+
+    return {
+      minDuration: vmp.minDuration.toString(),
+      minQuorum: vmp.minQuorum.toString(),
+      token: vmp.token
+    }
   }
 
   const handleFunctionSelectorChoicesChange = (event: SingleValue<{ value: string, label: string }>) => {
@@ -106,6 +147,9 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         initialNewInstanceValuesTemp.votingContract = votingContractAddress
         initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
       }
+      setInitialCalldataInputValuesFromSelector(event.value)
+
+      setCalldata(event.value)
       if (library) {
         playground.connect(library.getSigner()).getAssignedContract(event.value).then((contract: string) => {
           // console.log('The chosen selector has the following contract', res)
@@ -123,15 +167,69 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         })
       }
 
+      // set the metaparameter for the function selector
+      fetchVotingMetaparameters(event.value).then((parameters) => {
+        setVotingMetaparameters(parameters)
+      })
+
     }
   }
 
   const handleFunctionSelector = (event: any) => {
+    // set the function selector
     setFunctionSelector(event.target.value)
+    // set also the remote initial instance value setter, so that the data is not lost, when
+    // the details page is closed (collapsed/hidden)
     let initialNewInstanceValuesTemp = { ...initialNewInstanceValues }
     initialNewInstanceValuesTemp.targetId = event.target.value
     initialNewInstanceValuesTemp.votingContract = votingContractAddress
     initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
+    // set calldataInputValues
+    if (event.target.value.match(isBytes4)) {
+      try {
+        setInitialCalldataInputValuesFromSelector(event.target.value)
+      } catch (err) {
+        console.log('Got error setting initial calldata input values', err)
+      }
+    }
+    // set calldata until here
+    setCalldata(event.target.value)
+  }
+
+  // handle calldata input values
+
+  const handleCalldataInputValues = (ev: { target: { id: string, value: string } }) => {
+    let hasNumber = ev.target.id.match(/\d+/)
+    if (hasNumber !== null) {
+      // if hasNumber.length > 0
+      let index = parseInt(hasNumber[0]);
+      let calldataInputValuesTemp = [...calldataInputValues]
+      calldataInputValuesTemp[index].value = ev.target.value
+      setCalldataInputValues(calldataInputValuesTemp)
+    }
+
+  }
+
+  const handleCalldataUpdate = (ev: any) => {
+    setCalldata(ev.target.value)
+  }
+
+  const handleCalldataEncoding = (ev: any) => {
+    let message: Array<string> = []
+    let formatCondition = true;
+    for (const input of calldataInputValues) {
+      if (input.value.match(input.test) == null) {
+        message.push(`Input for ${input.name} does not match the format.`)
+        formatCondition = false
+      }
+    }
+    setCalldataEncodingMessage(message)
+    if (formatCondition) {
+      console.log('Hurray, lets encode')
+      let functionName = playground.interface.getFunction(functionSelector).name
+      let encoded = playground.interface.encodeFunctionData(functionName, calldataInputValues.map(inp => inp.value))
+      setCalldata(encoded)
+    }
   }
 
   // handle contract choices
@@ -262,14 +360,19 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
 
   const submitCreateVotingInstance = async (event: any) => {
     if (library) {
+      // library.getSigner().estimateGas.start(encodedVotingParameters,
+      //   calldata)
       let tx = await playground.connect(library.getSigner()).start(
         encodedVotingParameters,
         calldata
       )
-      await tx.wait()
+      console.log('Transaction', tx)
+      let receipt = await tx.wait()
+      console.log('Receipt:', receipt)
     }
 
   }
+
 
   return (
     <div style={{ overflowY: "scroll", maxHeight: "90vh" }}>
@@ -282,7 +385,12 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
       </div>
       <hr />
       <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
-
+        <h3> Set Calldata</h3>
+        Please enter the calldata that you wish to be executed upon a successful outcome of this voting instance.
+        The calldata consists of a selector, which encodes the function that ought to be called, together with the encoded arguments.
+        In principle any function can be called on any contract. However, the playground contract has certain guards in place. Some Functions
+        can only be executed from a certain voting contract.
+        <br />
         <input
           type="checkbox"
           checked={chooseFromPlaygroundSelectors}
@@ -301,7 +409,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           options={functionSelectorOptions.map((ct) => {
             return {
               value: ct.selector,
-              label: ct.name + `(${ct.selector})`
+              label: ct.name + ` (${ct.selector})`
             }
           })}
           className="basic-select"
@@ -316,6 +424,60 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           value={functionSelector}
           onChange={(event) => handleFunctionSelector(event)}
         />
+      </div>
+      <div style={{
+        display: calldataInputValues.length == 0 ? "none" : "inline-block",
+        width: "100%",
+        padding: "5px"
+      }}>
+        <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+          {calldataInputValues.map((inp, j) => {
+            return (
+              <div key={`New div calldata input field ${j}`} style={{ paddingTop: "4px", paddingBottom: "2px" }}>
+                <div style={{ textAlign: "right", display: "inline-block", width: "58%", padding: "5px" }}>
+                  {`${inp.name} (${inp.type}):  `}
+                </div>
+                <input
+                  style={{ fontFamily: "monospace", textAlign: "left", display: "inline-block", width: "42%", padding: "5px" }}
+                  key={`New calldata input field ${j}`}
+                  id={`New calldata input field ${j}`}
+                  value={inp.value}
+                  onChange={handleCalldataInputValues}
+                ></input>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{
+          display: (calldataEncodingMessage.length == 0 ? "none" : "block"),
+
+          margin: "5px",
+          borderRadius: "5px",
+          padding: "5px",
+          backgroundColor: bootstrapColors.warning
+        }}>
+          {calldataEncodingMessage.map((sentence) => { return (<>{sentence}<br /></>) })}
+        </div>
+        <div
+          className="btn btn-primary"
+          style={{
+            display: "inline-block", minWidth: "100%", width: "100%",
+            padding: "15px"
+          }}
+          onClick={handleCalldataEncoding}>Encode</div>
+      </div>
+      <div style={{ marginBottom: "20px" }}>
+        <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+          Calldata:
+        </div>
+        <textarea
+          style={{ fontFamily: "monospace" }}
+          cols={63}
+          rows={4}
+          id="calldata"
+          value={calldata}
+          onChange={handleCalldataUpdate}>
+        </textarea>
       </div>
       <hr />
       <div>
@@ -360,6 +522,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
       <hr />
       <div>
         <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+          <h3> Set Voting Parameters</h3>
           The voting parameters configure the voting instance. Typical fields include the duration
           of the poll, the token address that should be used or the quorum that makes a poll valid.
           Ideally the voting contract is verified on a blockscanner, or the maintainers of the voting
@@ -385,6 +548,29 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         </div>
       </div>
       <hr />
+      <div style={{ display: (votingMetaparameters ? "block" : "none") }}>
+        {
+          votingMetaparameters ?
+            <table style={{ verticalAlign: "middle", tableLayout: "fixed" }} className="table">
+              <tbody>
+                <tr>
+                  <th>Min Duration</th>
+                  <td>{votingMetaparameters.minDuration}</td>
+                </tr>
+                <tr>
+                  <th>Min Quorum</th>
+                  <td>{votingMetaparameters.minQuorum}</td>
+                </tr>
+                <tr>
+                  <th>Token</th>
+                  <td>{votingMetaparameters.token}</td>
+                </tr>
+              </tbody>
+            </table>
+            :
+            <></>
+        }
+      </div>
       <div style={{ display: displayTypeOfInputFields }}>
         {votingParams.address ?
           <span
@@ -422,6 +608,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
               <></>}
           </div>
         </div>
+
         <div>
           <div
             className="btn btn-primary"
@@ -435,7 +622,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         <hr />
 
       </div>
-      <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "10px" }}>
         <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
           Bytes-encoded Voting Parameters:
         </div>
@@ -449,7 +636,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         </textarea>
       </div>
       <hr />
-      <div>
+      <div style={{ marginBottom: "20px" }}>
         <button
           className="btn btn-success"
           onClick={submitCreateVotingInstance}
@@ -458,7 +645,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         </button>
       </div>
 
-    </div>
+    </div >
 
   )
 }
