@@ -53,6 +53,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
 
   const [deadline, setDeadline] = useState<string>("")
   const [votingParams, setVotingParams] = useState<VotingParams>({ active: false })
+  const [calldata, setCalldata] = useState<string>("0x")
   const [blockscannerApiKey, setBlockscannerApiKey] = useState<string>("")
   const [displayTypeOfInputFields, setDisplayTypeOfInputFields] = useState<"inherit" | "none">("none")
   const [encodedVotingParameters, setEncodedVotingParameters] = useState<string>("")
@@ -258,6 +259,18 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     }
   }
 
+
+  const submitCreateVotingInstance = async (event: any) => {
+    if (library) {
+      let tx = await playground.connect(library.getSigner()).start(
+        encodedVotingParameters,
+        calldata
+      )
+      await tx.wait()
+    }
+
+  }
+
   return (
     <div style={{ overflowY: "scroll", maxHeight: "90vh" }}>
       <div style={{ textAlign: "right" }}>
@@ -434,6 +447,15 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           value={encodedVotingParameters}
           onChange={handleEncodedParametersChange}>
         </textarea>
+      </div>
+      <hr />
+      <div>
+        <button
+          className="btn btn-success"
+          onClick={submitCreateVotingInstance}
+        >
+          Create Voting Instance
+        </button>
       </div>
 
     </div>

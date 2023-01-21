@@ -8,11 +8,13 @@ import { PageInfo, Pages, PageSetter } from "../types/pages"
 
 interface MenuArgs {
   detailsHandling: DetailsHandling
+  selectedPage: Pages
 }
 
 interface MenuItemArgs {
   changeSelectedPage: PageSetter,
-  item: Pages
+  item: Pages,
+  selectedPage: Pages
 }
 
 const menuItemStyle: CSSProperties = {
@@ -37,8 +39,10 @@ enum MenuBottomColors {
 
 
 
-const MenuItem: React.FC<MenuItemArgs> = ({ changeSelectedPage, item }: MenuItemArgs) => {
+const MenuItem: React.FC<MenuItemArgs> = ({ changeSelectedPage, item, selectedPage }: MenuItemArgs) => {
   const [overItem, setOverItem] = useState<boolean>(false)
+
+  let isSelected: boolean = item == selectedPage
 
   let thisItemInfo: PageInfo = pageInfo[item]
 
@@ -46,7 +50,11 @@ const MenuItem: React.FC<MenuItemArgs> = ({ changeSelectedPage, item }: MenuItem
     <div
       style={{
         ...menuItemStyle,
-        backgroundColor: overItem == true ? "#ddd" : "#bbb"
+        backgroundColor: (
+          overItem == true ?
+            (isSelected ? "#dda" : "#ddd") :
+            (isSelected ? "#bb8" : "#bbb")
+        )
       }}
       key={thisItemInfo.key + '-item'}
       onClick={() => changeSelectedPage(item)}
@@ -57,7 +65,7 @@ const MenuItem: React.FC<MenuItemArgs> = ({ changeSelectedPage, item }: MenuItem
   )
 }
 
-const Menu: React.FC<MenuArgs> = ({ detailsHandling }: MenuArgs) => {
+const Menu: React.FC<MenuArgs> = ({ detailsHandling, selectedPage }: MenuArgs) => {
   // const MenuItemsTemp = Object.values(Pages)
   // console.log('Pages', Pages["VotingContractIntegration"])
 
@@ -75,7 +83,7 @@ const Menu: React.FC<MenuArgs> = ({ detailsHandling }: MenuArgs) => {
         Object.keys(Pages)
           .filter((v) => isNaN(Number(v)))
           .map((page) => {
-            return <MenuItem item={Pages[page as keyof typeof Pages]} changeSelectedPage={changeSelectedPage} />
+            return <MenuItem item={Pages[page as keyof typeof Pages]} selectedPage={selectedPage} changeSelectedPage={changeSelectedPage} />
           })
       }
     </>

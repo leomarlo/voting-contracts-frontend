@@ -71,13 +71,15 @@ const Main: React.FC = () => {
     }
   }
 
+  // console.log('Selected page in main is ', selectedPage)
+
   return (
     <div className="row absolute padded1" style={mainStyle}>
       <div className="col-2" style={menuStyle}>
         <div style={{ minHeight: "200px" }}>
           {/* <VotingContractsLogo width="100%" /> */}
         </div>
-        <Menu detailsHandling={detailsHandling} />
+        <Menu detailsHandling={detailsHandling} selectedPage={selectedPage} />
       </div>
       <div className={focusOnDetails ? columnWidths[1][0] : columnWidths[0][0]} style={contentContainerStyle} >
         {getContentDOM()}
