@@ -57,7 +57,7 @@ const VotingContractStandardElement: JSX.Element = (
       <li><code>decodeVotingParams</code> (view, optional)</li>
     </ol>
     <p>and any set of extensions.</p>
-    <h4 id="start-a-voting-instance">Start a Voting Instance</h4>
+    <h5 id="start-a-voting-instance">Start a Voting Instance</h5>
     <p>The start function should create a new voting instance. Two arguments should be passed to it, namely <code>bytes memory votingParams</code> and <code>bytes calldata callback</code>. The <code>uint256 identifier</code>
       of the instance should be returned:</p>
     <pre style={{ paddingLeft: "30px" }}><code className="lang-js">function start(bytes memory votingParams, bytes calldata callback) external returns(uint256 identifier);
@@ -73,7 +73,7 @@ const VotingContractStandardElement: JSX.Element = (
       Voting Result)</p>
     <p>Once the voting instance has been configured and created a pointer to that instance should be returned. This could be
       a hash that uniquely identifies a voting instance or an index of sorts.</p>
-    <h4 id="casting-a-vote">Casting a Vote</h4>
+    <h5 id="casting-a-vote">Casting a Vote</h5>
     <p>The vote function should be called to cast a vote. It needs to receive the <code>uint256 identifier </code> as one
       argument and information about the vote via <code>bytes calldata votingData</code>. The current status <code>uint256 status</code> should be returned, so that a calling contract could immediately act upon a
       status-change. To allow for greater flexibility the status is of type <code>uint256</code>. We recommend that the
@@ -89,7 +89,7 @@ const VotingContractStandardElement: JSX.Element = (
     <pre style={{ paddingLeft: "30px" }}><code className="lang-js">{"enum VotingStatus {inactive, completed, failed, active}"}
     </code></pre>
     <p>that enforces them.</p>
-    <h4 id="querying-the-result-of-the-voting-instance">Querying the Result of the Voting Instance</h4>
+    <h5 id="querying-the-result-of-the-voting-instance">Querying the Result of the Voting Instance</h5>
     <p>There must be a method that can query the result of a voting instance. </p>
     <pre style={{ paddingLeft: "30px" }}><code className="lang-js">function result(uint256 identifier) public view returns(bytes memory resultData);
     </code></pre>
@@ -97,7 +97,7 @@ const VotingContractStandardElement: JSX.Element = (
       the voting instance. The output <code>bytes memory resultData</code> could be the current status of the vote. Apart
       from the status one could add some information about the aggregated votes, such as the number of approvals,
       disapprovals and abstentions.</p>
-    <h4 id="implement-the-voting-result">Implement the Voting Result</h4>
+    <h5 id="implement-the-voting-result">Implement the Voting Result</h5>
     <p>This standard is really meant for voting with on-chain consequences, but it can also be used like snapshot. The <code>implement</code> function executes the <code>bytes calldata callback</code> directly on the calling contract.
       As arguments it takes the <code>uint256 identifier</code> and the <code>bytes calldata callback</code>. It returns a
       response that can be either <code>successful</code> or <code>unsuccessful</code>. Calls that have not yet been made
@@ -116,6 +116,7 @@ const VotingContractStandardElement: JSX.Element = (
 )
 
 const VotingContractsComp: React.FC<VotingContractsArgs> = ({ detailsHandling }: VotingContractsArgs) => {
+  let thisPageInfo: PageInfo = pageInfo[Pages.VotingContracts]
 
   const { account, chainId, library } = useWeb3React<ethers.providers.Web3Provider>()
 
@@ -147,18 +148,24 @@ const VotingContractsComp: React.FC<VotingContractsArgs> = ({ detailsHandling }:
       paddingRight: "15px",
       paddingBottom: "15px"
     }}>
-      {Object.keys(VotingContractSections).filter((v) => isNaN(Number(v))).map((section) => {
-        let sc = VotingContractSections[section as keyof typeof VotingContractSections]
-        return (
-          <>
-            <h3
-              style={{ cursor: "pointer" }}
-              onClick={() => changeDisplayThisSection(sc)}
-            >{(displaySection[sc] ? '⯆ ' : '⯈ ') + sc}</h3>
-            {displaySection[sc] ? <div style={{ paddingLeft: "30px" }}>{sectionContent[sc]}</div> : <></>}
-          </>
-        )
-      })}
+      <div key={thisPageInfo.key}>
+        <h3>{thisPageInfo.title}</h3>
+        <hr />
+        {Object.keys(VotingContractSections).filter((v) => isNaN(Number(v))).map((section) => {
+          let sc = VotingContractSections[section as keyof typeof VotingContractSections]
+          return (
+            <>
+              <h4
+                style={{ cursor: "pointer" }}
+                onClick={() => changeDisplayThisSection(sc)}
+              >{(displaySection[sc] ? '⯆ ' : '⯈ ') + sc}</h4>
+              {displaySection[sc] ? <div style={{ paddingLeft: "30px" }}>{sectionContent[sc]}</div> : <></>}
+              <hr />
+            </>
+
+          )
+        })}
+      </div>
     </div>
 
   )

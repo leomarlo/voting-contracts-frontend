@@ -10,6 +10,7 @@ import { VotingContractsComp } from "./VotingContracts"
 import { DetailsHandling, ComponentSetter } from "../types/components"
 import { PlaygroundComp } from "./Playground"
 import { VotingIntegrationComp } from "./VotingIntegration"
+import { RegistrySystemComp } from "./RegistrySystem"
 import { pageInfo } from "../utils/pages"
 import { Pages, PageSetter } from "../types/pages"
 // import { VotingContractsLogo } from "./icons/Logo"
@@ -66,8 +67,10 @@ const Main: React.FC = () => {
       return (<PlaygroundComp detailsHandling={detailsHandling} />)
     } else if (selectedPage == Pages.VotingContractIntegration) {
       return (<VotingIntegrationComp detailsHandling={detailsHandling} />)
+    } else if (selectedPage == Pages.VotingRegistrySystem) {
+      return (<RegistrySystemComp detailsHandling={detailsHandling} />)
     } else {
-      return (<Content detailsHandling={detailsHandling} />)
+      return (<AboutComp detailsHandling={detailsHandling} />)
     }
   }
 
