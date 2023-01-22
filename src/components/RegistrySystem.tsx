@@ -161,8 +161,9 @@ const RegistrySystemResolverElement: JSX.Element = (
       struct. One should also implement setters and if the values ought to be accessible from other contracts one
       should implement getters, too.</p>
     <pre style={{ paddingLeft: "30px" }}><code className="lang-js">
-      {"function _setIsImplementer(address votingContract,"} <br />
-      {"    bool _isImplementer) internal {<br>isImplementer[votingContract] = _isImplementer;"} <br />
+      {"function _setIsImplementer(address votingContract, bool _isImplementer) internal {"} <br />
+      {"    isImplementer[votingContract] = _isImplementer;"} <br />
+      {"}"} <br />
       {""} <br />
       {"function getIsImplementer(address votingContract) external view returns(bool) {"} <br />
       {"    return isImplementer[votingContract];"} <br />
