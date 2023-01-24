@@ -167,6 +167,9 @@ const getBlockexplorerBaseUrlFromChainId = (chainId: number, forApiCall: boolean
   if (chainId == 137 || chainId == 80001) {
     let testnetornot = chainId == 137 ? "" : "testnet"
     baseurl = `https://${apiOption}${testnetornot}.polygonscan.com`
+  } if (chainId == 42161 || chainId == 421613) {
+    let testnetornot = chainId == 42161 ? "" : "-goerli"
+    baseurl = `https://api${testnetornot}.arbiscan.io`
   } else {
     let testnetornot = chainId == 1 ? "" : reverseResolveChainId[chainId]
     baseurl = `https://${apiOption}${testnetornot}.etherscan.io`
@@ -343,6 +346,7 @@ async function getVotingInstanceExternalInfo(
       } catch (err) { console.log('getStatus', err); message += 'No Decimals method found!\n' }
       // let decimals = (await tokenInterface.decimals())
       let balance = (await tokenInterface.balanceOf(signerAddress))
+
       tokenInfo.name = name
       tokenInfo.symbol = symbol
       tokenInfo.balance = balance

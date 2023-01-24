@@ -722,7 +722,10 @@ const getIntrospectPlayground: () => JSX.Element = () => {
               backgroundColor: "white",
               width: "100%"
             }}>
-              {JSON.stringify(playgroundFormInputValues[f.name].result)}
+              {Array.isArray(playgroundFormInputValues[f.name].result) ?
+                playgroundFormInputValues[f.name].result.map((ent: any, i: number) => { return (i == 0 ? "" : ", ") + ent.toString() }) :
+                playgroundFormInputValues[f.name].result.toString()
+              }
             </div>
           </div>)
       })}

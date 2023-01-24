@@ -374,6 +374,16 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   }
 
 
+  const defaultEnterAPIKeyMessage = (chainId: number) => {
+    if (chainId == 137 || chainId == 80001) {
+      return "Enter Polygonscan API key"
+    } else if (chainId == 42161 || chainId == 421613) {
+      return "Enter Arbiscan API key"
+    } else {
+      return "Enter Etherscan API key"
+    }
+  }
+
   return (
     <div style={{ overflowY: "scroll", maxHeight: "90vh" }}>
       <div style={{ textAlign: "right" }}>
@@ -539,7 +549,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         <div style={{ display: "inline-block", width: "60%", padding: "5px", textAlign: "right" }}>
           <input
             width="60%"
-            placeholder={(chainId == 137 || chainId == 80001) ? "Enter Polygonscan API key" : "Enter Etherscan API key"}
+            placeholder={defaultEnterAPIKeyMessage(chainId)}
             disabled={false}
             value={blockscannerApiKey}
             onChange={(event) => handleChangeBlockscannerApiKey(event)}

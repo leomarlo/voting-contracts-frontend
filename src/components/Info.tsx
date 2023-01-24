@@ -1,8 +1,9 @@
 // Info.tsx
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { formatAddress } from '../utils/format'
 import { ethers } from 'ethers'
+import { reverseResolveChainId } from "../utils/chains"
 import { useWeb3React } from '@web3-react/core';
 
 
@@ -44,20 +45,31 @@ const Info: React.FC = () => {
     active
   } = useWeb3React<ethers.providers.Web3Provider>();
 
+  const pleaseConnect: string = "Please connect your account!     \u261B"
+  const [addressInfo, setAddressInfo] = useState<string>(pleaseConnect)
+  const [chainInfo, setChainInfo] = useState<string | undefined>(undefined)
 
-  let accountInfo: AccountInfo = {} as AccountInfo
-  accountInfo.active = active
-  if (active) {
-    accountInfo.content1 = "Address:"
-    accountInfo.content2 = formatAddress(account as string, 6)
-  } else {
-    accountInfo.content1 = "Please connect your account!     \u261B"
-  }
+  useEffect(() => {
+    if (chainId && account) {
+      setAddressInfo(`Address: ${account}`)
+      setChainInfo(`Chain: ${reverseResolveChainId[chainId]} (${chainId})`)
+    } else {
+      setAddressInfo(pleaseConnect)
+      setChainInfo(undefined)
+    }
+  }, [active, chainId, account])
+
 
   return (
     <div className="border border-warning border-3" style={infoStyle}>
       {/* {accountInfo} */}
-      {getAccountInfo(accountInfo)}
+      {addressInfo}
+      {chainInfo ?
+        <>
+          <br />
+          {chainInfo}
+        </> :
+        <></>}
     </div>
   )
 }
