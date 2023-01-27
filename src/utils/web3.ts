@@ -202,18 +202,24 @@ async function getRegisteredVotingContracts(registry: ethers.Contract): Promise<
 
 const getBlockexplorerBaseUrlFromChainId = (chainId: number, forApiCall: boolean) => {
   let baseurl = ""
-  let withDot = forApiCall ? "." : ""
+
   if (chainId === 137 || chainId === 80001) {
-    let testnetornot = chainId == 137 ? "" : "-testnet"
+    let testnet: boolean = chainId != 137
+    let testnetornot = (!testnet) ? "" : "-testnet"
     let apiOption = forApiCall ? "api" : ""
+    let withDot = forApiCall ? "." : (testnet ? "." : "")
     baseurl = `https://${apiOption}${testnetornot}${withDot}polygonscan.com`
   } else if (chainId == 42161 || chainId == 421613) {
-    let testnetornot = chainId == 42161 ? "" : "-goerli"
+    let testnet: boolean = chainId != 42161
+    let testnetornot = (!testnet) ? "" : "-goerli"
     let apiOption = forApiCall ? "api" : ""
+    let withDot = forApiCall ? "." : (testnet ? "." : "")
     baseurl = `https://${apiOption}${testnetornot}${withDot}arbiscan.io`
   } else {
-    let testnetornot = chainId == 1 ? "" : reverseResolveChainId[chainId]
+    let testnet: boolean = chainId != 1
+    let testnetornot = (!testnet) ? "" : reverseResolveChainId[chainId]
     let apiOption = forApiCall ? "api-" : ""
+    let withDot = forApiCall ? "." : (testnet ? "." : "")
     baseurl = `https://${apiOption}${testnetornot}${withDot}etherscan.io`
   }
   return baseurl

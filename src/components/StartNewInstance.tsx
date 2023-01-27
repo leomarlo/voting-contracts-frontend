@@ -72,6 +72,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   const [displayTypeOfInputFields, setDisplayTypeOfInputFields] = useState<"inherit" | "none">("none")
   const [encodedVotingParameters, setEncodedVotingParameters] = useState<string>("")
 
+  const [contractIsFixedByTargetChoice, setContractIsFixedByTargetChoice] = useState<boolean>(false)
   const linkStyle: CSSProperties = { color: 'lightcoral', fontWeight: "bold" }
 
   useEffect(() => {
@@ -163,7 +164,14 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
             }
           }
           registeredVotingContractsSetter(registeredVotingContractsTemp)
-          setVotingContractAddress(contract)
+          if (contract == ethers.constants.AddressZero) {
+            setContractIsFixedByTargetChoice(false)
+            setVotingContractAddress("")
+          }
+          else {
+            setContractIsFixedByTargetChoice(true)
+            setVotingContractAddress(contract)
+          }
         })
       }
 
@@ -496,17 +504,18 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           <input
             type="checkbox"
             checked={chooseFromRegisteredContracts}
+            disabled={contractIsFixedByTargetChoice}
             value={"chooseFromRegisteredContracts"}
             id="chooseFromRegisteredContracts"
             onChange={(event) => handleChooseFromRegisteredContracts(event)} />
-          <label style={{ paddingLeft: "10px" }}>
+          <label style={{ paddingLeft: "10px", color: (contractIsFixedByTargetChoice ? "gray" : "black") }}>
             Choose voting contract from registered contracts
           </label>
         </div>
         <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
           <Select
             onChange={(event) => handleVotingContractChoicesChange(event)}
-            isDisabled={!chooseFromRegisteredContracts}
+            isDisabled={!chooseFromRegisteredContracts || contractIsFixedByTargetChoice}
             placeholder="Choose contract"
             options={registeredVotingContracts.map((ct) => {
               return {
