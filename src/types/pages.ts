@@ -1,9 +1,10 @@
 enum Pages {
   About,
   VotingContracts,
-  VotingPlayground,
   VotingContractIntegration,
-  VotingRegistrySystem
+  VotingRegistrySystem,
+  VotingPlayground,
+  Documentation
 }
 
 interface PageInfo {

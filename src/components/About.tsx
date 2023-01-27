@@ -1,4 +1,4 @@
-import React from "react";
+import React, { CSSProperties } from "react";
 import { DetailsHandling } from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
@@ -7,13 +7,17 @@ interface AboutArgs {
   detailsHandling: DetailsHandling
 }
 
+const linkStyle: CSSProperties = { color: 'lightcoral', fontWeight: "bold" }
+
 const AboutComp: React.FC<AboutArgs> = ({ detailsHandling }: AboutArgs) => {
   let thisPageInfo: PageInfo = pageInfo[Pages.About]
 
 
+
+  const title: string = "What are Configurable Voting Contracts"
   return (
     <div key={thisPageInfo.key}>
-      {/* <h3>{thisPageInfo.title}</h3> */}
+      <h3> What is our mission?</h3>
       <p>
         We make on-chain voting configurable, modularizable, pluggable and secure.
         The key idea behind configurable voting contracts is to outsource the voting functionality
@@ -28,16 +32,36 @@ const AboutComp: React.FC<AboutArgs> = ({ detailsHandling }: AboutArgs) => {
         second the platform provides an easy way to build both voting contracts that obey the standard aswell as <span>interfacing</span> them inside of your target contract, i.e. integration.
         Lastly there is a <span>playground</span> that serves the purpose of familiarizing yourself with the idea of voting contracts.
       </p>
+      <h3>Page content</h3>
       Please find th following information on this page:
       <ol>
-        <li><span>Voting Contracts</span></li>
-        <li><span>Integration</span></li>
-        <li><span>Registry</span></li>
-        <li><span>Playground</span></li>
+        <li>
+          <span style={linkStyle} onClick={(e) => { detailsHandling.pageSetter(Pages.VotingContracts) }}>
+            Voting Contracts
+          </span>
+        </li>
+        <li>
+          <span style={linkStyle} onClick={(e) => { detailsHandling.pageSetter(Pages.VotingContractIntegration) }}>
+            Integration
+          </span>
+        </li>
+        <li>
+          <span style={linkStyle} onClick={(e) => { detailsHandling.pageSetter(Pages.VotingRegistrySystem) }}>
+            Registry
+          </span>
+        </li>
+        <li>
+          <span style={linkStyle} onClick={(e) => { detailsHandling.pageSetter(Pages.VotingPlayground) }}>
+            Playground
+          </span>
+        </li>
+        <li>
+          <span style={linkStyle} onClick={(e) => { detailsHandling.pageSetter(Pages.Documentation) }}>
+            Documentation
+          </span>
+        </li>
       </ol>
 
-
-      The core concept of <b>Configurable Voting Contracts</b> is to outsource voting to external
 
     </div>
   )

@@ -549,7 +549,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         <div style={{ display: "inline-block", width: "60%", padding: "5px", textAlign: "right" }}>
           <input
             width="60%"
-            placeholder={defaultEnterAPIKeyMessage(chainId)}
+            placeholder={defaultEnterAPIKeyMessage(chainId as number)}
             disabled={false}
             value={blockscannerApiKey}
             onChange={(event) => handleChangeBlockscannerApiKey(event)}

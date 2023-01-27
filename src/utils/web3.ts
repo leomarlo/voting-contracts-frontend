@@ -1,5 +1,5 @@
 import { ethers } from "ethers"
-import { reverseResolveChainId } from "../utils/chains"
+import { supportedChainIds, reverseResolveChainId } from "../utils/chains"
 import deploymentInfo from "../deployment/deploymentInfo.json"
 import { hexValue } from "ethers/lib/utils"
 import axios from 'axios'
@@ -143,6 +143,45 @@ const getContractAddress = async (chainId: number, contractName: string) => {
   return deploymentInfoNetwork[contractName].address
 }
 
+const getContractAddressesForAllChains = () => {
+  let contractNames = {
+    "Registry": "VotingRegistry",
+    "Playground Voting Badge": "PlaygroundVotingBadge",
+    "Registrar": "ControllableRegistrar",
+    "Resolver": "ResolverWithControl",
+    "Majority Voting Contract (not weighted)": "PlainMajorityVoteWithQuorum",
+    "Majority Voting Contract (NFT weighted)": "MajorityVoteWithNFTQuorumAndOptionalDVGuard",
+    "Snapshot": "SimpleSnapshotWithoutToken",
+    "Playground": "VotingPlayground",
+  }
+  let addresses: { [chain: string]: { [contract: string]: string } } = {}
+  let addressesForThisChain: { [contract: string]: string } = {}
+  for (let chainId of supportedChainIds) {
+    let name = reverseResolveChainId[chainId]
+    let deploymentInfoChain = deploymentInfo[name as keyof typeof deploymentInfo]
+
+    let displayableContractNames = Object.keys(contractNames)
+    for (const contract of displayableContractNames) {
+      //   console.log('contract name', contract)
+      // }
+      try {
+        let thisContractAddress = deploymentInfoChain[contractNames[contract as keyof typeof contractNames] as keyof typeof deploymentInfoChain].address
+        addressesForThisChain[contract] = thisContractAddress
+      } catch (err) {
+        console.log(err)
+      }
+
+      // if (deploymentInfoChain[internalContractName as keyof typeof deploymentInfoChain]) {
+      //   addressesForThisChain[contract] = deploymentInfoChain[contractNames[contract as keyof typeof contractNames] as keyof typeof deploymentInfoChain].address
+      // }
+    }
+    // addresses[name] = { "Registry": "abcd" }
+    addresses[name] = addressesForThisChain
+    addressesForThisChain = {}
+  }
+  return addresses
+}
+
 const getPlaygroundAddress = async (chainId: number) => {
   return await getContractAddress(chainId, "VotingPlayground")
 }
@@ -163,16 +202,19 @@ async function getRegisteredVotingContracts(registry: ethers.Contract): Promise<
 
 const getBlockexplorerBaseUrlFromChainId = (chainId: number, forApiCall: boolean) => {
   let baseurl = ""
-  let apiOption = forApiCall ? "api-" : ""
-  if (chainId == 137 || chainId == 80001) {
-    let testnetornot = chainId == 137 ? "" : "testnet"
-    baseurl = `https://${apiOption}${testnetornot}.polygonscan.com`
-  } if (chainId == 42161 || chainId == 421613) {
+  let withDot = forApiCall ? "." : ""
+  if (chainId === 137 || chainId === 80001) {
+    let testnetornot = chainId == 137 ? "" : "-testnet"
+    let apiOption = forApiCall ? "api" : ""
+    baseurl = `https://${apiOption}${testnetornot}${withDot}polygonscan.com`
+  } else if (chainId == 42161 || chainId == 421613) {
     let testnetornot = chainId == 42161 ? "" : "-goerli"
-    baseurl = `https://api${testnetornot}.arbiscan.io`
+    let apiOption = forApiCall ? "api" : ""
+    baseurl = `https://${apiOption}${testnetornot}${withDot}arbiscan.io`
   } else {
     let testnetornot = chainId == 1 ? "" : reverseResolveChainId[chainId]
-    baseurl = `https://${apiOption}${testnetornot}.etherscan.io`
+    let apiOption = forApiCall ? "api-" : ""
+    baseurl = `https://${apiOption}${testnetornot}${withDot}etherscan.io`
   }
   return baseurl
 }
@@ -407,6 +449,7 @@ export {
   getPlaygroundInstancesFromEvents,
   getBlockexplorerBaseUrlFromChainId,
   getContractABIFromEtherscan,
+  getContractAddressesForAllChains,
   ErcInterfaceFlags,
   TokenInfo,
   TargetInterface,

@@ -6,7 +6,7 @@ export const supportedChainIds: Array<number> = [
   42161, // Arbitrum
   421613, // Arbitrum Goerli
   80001, // Mumbai
-  1337802, // Kiln
+  // 1337802, // Kiln
   11155111 // Sepolia
 ]
 
@@ -18,7 +18,7 @@ export const resolveChainId: { [key: string]: number } = {
   arbitrum: 42161,
   arbitrumGoerli: 421613,
   mumbai: 80001,
-  kiln: 1337802,
+  // kiln: 1337802,
   sepolia: 11155111
 }
 
@@ -30,6 +30,6 @@ export const reverseResolveChainId: { [key: number]: string } = {
   42161: "arbitrum",
   421613: "arbitrumGoerli",
   80001: "mumbai",
-  1337802: "kiln",
+  // 1337802: "kiln",
   11155111: "sepolia"
 }

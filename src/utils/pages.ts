@@ -5,7 +5,8 @@ const pageInfo: { [name in Pages]: PageInfo } = {
   [Pages.VotingContracts]: { key: 'voting-contracts', title: 'Voting Contracts' },
   [Pages.VotingPlayground]: { key: 'voting-playground', title: 'Playground' },
   [Pages.VotingContractIntegration]: { key: 'voting-contract-integration', title: 'Voting Contract Integration' },
-  [Pages.VotingRegistrySystem]: { key: 'voting-registry', title: 'Voting Registry' }
+  [Pages.VotingRegistrySystem]: { key: 'voting-registry', title: 'Voting Registry' },
+  [Pages.Documentation]: { key: 'documentation', title: 'Documentation' }
 }
 
 export {

@@ -194,9 +194,9 @@ const RegistrySystemComp: React.FC<RegistrySystemArgs> = ({ detailsHandling }: R
   /* Display section handling */
 
   const initialDisplaySection: RegistrySystemSectionsSectionFlags = {
-    [RegistrySystemSections.Registry]: true,
-    [RegistrySystemSections.Registrar]: true,
-    [RegistrySystemSections.Resolver]: true
+    [RegistrySystemSections.Registry]: false,
+    [RegistrySystemSections.Registrar]: false,
+    [RegistrySystemSections.Resolver]: false
   }
 
   const sectionContent: RegistrySystemSectionsSectionContents = {

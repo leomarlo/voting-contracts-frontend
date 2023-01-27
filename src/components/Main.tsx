@@ -11,6 +11,7 @@ import { DetailsHandling, ComponentSetter } from "../types/components"
 import { PlaygroundComp } from "./Playground"
 import { VotingIntegrationComp } from "./VotingIntegration"
 import { RegistrySystemComp } from "./RegistrySystem"
+import { DocumentationComp } from "./Docs"
 import { pageInfo } from "../utils/pages"
 import { Pages, PageSetter } from "../types/pages"
 // import { VotingContractsLogo } from "./icons/Logo"
@@ -47,7 +48,7 @@ const Main: React.FC = () => {
 
   const columnWidths = [["col-9", "col-1"], ["col-4", "col-6"]]
   const [focusOnDetails, setFocusOnDetails] = useState<boolean>(false)
-  const [selectedPage, setSelectedPage] = useState<Pages>(Pages.VotingPlayground)
+  const [selectedPage, setSelectedPage] = useState<Pages>(Pages.About)
   const [detailsPage, setDetailsPage] = useState<JSX.Element>(<></>)
 
   const detailsHandling: DetailsHandling = {
@@ -63,12 +64,14 @@ const Main: React.FC = () => {
       return (<AboutComp detailsHandling={detailsHandling} />)
     } else if (selectedPage == Pages.VotingContracts) {
       return (<VotingContractsComp detailsHandling={detailsHandling} />)
-    } else if (selectedPage == Pages.VotingPlayground) {
-      return (<PlaygroundComp detailsHandling={detailsHandling} />)
     } else if (selectedPage == Pages.VotingContractIntegration) {
       return (<VotingIntegrationComp detailsHandling={detailsHandling} />)
     } else if (selectedPage == Pages.VotingRegistrySystem) {
       return (<RegistrySystemComp detailsHandling={detailsHandling} />)
+    } else if (selectedPage == Pages.Documentation) {
+      return (<DocumentationComp detailsHandling={detailsHandling} />)
+    } else if (selectedPage == Pages.VotingPlayground) {
+      return (<PlaygroundComp detailsHandling={detailsHandling} />)
     } else {
       return (<AboutComp detailsHandling={detailsHandling} />)
     }
