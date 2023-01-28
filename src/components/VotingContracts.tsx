@@ -9,6 +9,7 @@ import { reverseResolveChainId } from "../utils/chains"
 import { DetailsHandling } from "../types/components"
 import { pageInfo } from "../utils/pages"
 import { PageInfo, Pages } from "../types/pages"
+import { createVotingContract } from "./CreateVotingContract"
 
 
 import majorityVoteWithNft from "../abis/MajorityVoteWithNFTQuorumAndOptionalDVGuard"
@@ -30,6 +31,7 @@ const transactStyle = {
 
 enum VotingContractSections {
   VotingContractStandard = "Voting Contract Standard",
+  CreateVotingContract = "Create Voting Contract"
 }
 
 type VotingContractSectionFlags = { [section in VotingContractSections]: boolean }
@@ -121,11 +123,13 @@ const VotingContractsComp: React.FC<VotingContractsArgs> = ({ detailsHandling }:
   const { account, chainId, library } = useWeb3React<ethers.providers.Web3Provider>()
 
   const initialDisplaySection: VotingContractSectionFlags = {
-    [VotingContractSections.VotingContractStandard]: true
+    [VotingContractSections.VotingContractStandard]: false,
+    [VotingContractSections.CreateVotingContract]: true
   }
 
   const sectionContent: VotingContractSectionContents = {
-    [VotingContractSections.VotingContractStandard]: VotingContractStandardElement
+    [VotingContractSections.VotingContractStandard]: VotingContractStandardElement,
+    [VotingContractSections.CreateVotingContract]: createVotingContract()
   }
 
   const [displaySection, setDisplaySection] = useState<VotingContractSectionFlags>(initialDisplaySection)

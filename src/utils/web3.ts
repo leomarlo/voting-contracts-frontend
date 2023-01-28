@@ -207,19 +207,19 @@ const getBlockexplorerBaseUrlFromChainId = (chainId: number, forApiCall: boolean
     let testnet: boolean = chainId != 137
     let testnetornot = (!testnet) ? "" : "-testnet"
     let apiOption = forApiCall ? "api" : ""
-    let withDot = forApiCall ? "." : (testnet ? "." : "")
+    let withDot = forApiCall || testnet ? "." : ""
     baseurl = `https://${apiOption}${testnetornot}${withDot}polygonscan.com`
   } else if (chainId == 42161 || chainId == 421613) {
     let testnet: boolean = chainId != 42161
     let testnetornot = (!testnet) ? "" : "-goerli"
     let apiOption = forApiCall ? "api" : ""
-    let withDot = forApiCall ? "." : (testnet ? "." : "")
+    let withDot = forApiCall || testnet ? "." : ""
     baseurl = `https://${apiOption}${testnetornot}${withDot}arbiscan.io`
   } else {
     let testnet: boolean = chainId != 1
     let testnetornot = (!testnet) ? "" : reverseResolveChainId[chainId]
     let apiOption = forApiCall ? "api-" : ""
-    let withDot = forApiCall ? "." : (testnet ? "." : "")
+    let withDot = forApiCall || testnet ? "." : ""
     baseurl = `https://${apiOption}${testnetornot}${withDot}etherscan.io`
   }
   return baseurl
