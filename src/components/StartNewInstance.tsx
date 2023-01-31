@@ -36,6 +36,8 @@ interface VotingParams {
 type typeOfContract = "registered" | "simple" | "manual"
 interface CalldataInputValues { value: string, name: string, type: string, test: RegExp }
 
+
+const passwordObscureCharacter = "°"
 const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   playground,
   registeredVotingContracts,
@@ -380,7 +382,19 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   }
 
   const handleChangeBlockscannerApiKey = (event: any) => {
-    setBlockscannerApiKey(event.target.value)
+    let apiKey = event.target.value
+    let keyLetterList = blockscannerApiKey.split("").slice(0, apiKey.length)
+    for (let j = 0; j < apiKey.length; j++) {
+      if (apiKey[j] != passwordObscureCharacter) { keyLetterList[j] = apiKey[j] }
+    }
+    // console.log('allValidAdditions', allValidAdditions)
+    // let keyLetterList = blockscannerApiKey.split("")
+    // for (const addition of allValidAdditions) {
+    //   console.log('addition', addition)
+    //   keyLetterList[addition.index] = addition[0]
+    // }
+    // console.log(keyLetterList)
+    setBlockscannerApiKey(keyLetterList.join(''))
   }
 
   const handleVotingParamsUpdate = (ev: { target: { id: string, value: string } }) => {
@@ -662,11 +676,12 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
             width="60%"
             placeholder={defaultEnterAPIKeyMessage(chainId as number)}
             disabled={false}
-            value={blockscannerApiKey}
+            value={passwordObscureCharacter.repeat(blockscannerApiKey.length)}
             onChange={(event) => handleChangeBlockscannerApiKey(event)}
           />
           <span style={{ paddingLeft: "10px" }}>ⓘ</span>
         </div>
+        {blockscannerApiKey}
       </div>
       <hr />
       <div style={{ display: (votingMetaparameters ? "block" : "none") }}>
