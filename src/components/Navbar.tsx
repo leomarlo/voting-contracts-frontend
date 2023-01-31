@@ -28,13 +28,7 @@ const Navbar: React.FC = () => {
   return (
     <div className="row absolute" style={navbarStyle}>
       <div className="col-4">
-        {/* <h3> Voting Contracts</h3> */}
-        {/* <img src={Logo} alt="Voting Contract Logo" /> */}
-        {/* <Logo /> */}
-        {/* <div style={{ position: "relative", top: "-50px", left: "0%" }}>
-          <VotingContractsLogo width="100%" />
-        </div> */}
-        {/* <ReactSVG src="../img/Logo.svg" /> */}
+        <a href="https://discord.gg/zmaxFZa6sb">Join us on Discord</a>
       </div>
       <div className="col-4">
         <Info />

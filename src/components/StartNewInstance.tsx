@@ -6,7 +6,7 @@ import {
   getPlaygroundMutableFunctionsFromInterface,
   getBlockexplorerBaseUrlFromChainId,
   getContractABIFromEtherscan,
-  getGeneralVotingInterface
+  getGeneralVotingInterface,
 } from "../utils/web3"
 import {
   isBytesN,
@@ -32,6 +32,8 @@ interface VotingParams {
   }>
 }
 
+
+type typeOfContract = "registered" | "simple" | "manual"
 interface CalldataInputValues { value: string, name: string, type: string, test: RegExp }
 
 const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
@@ -71,9 +73,32 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   const [blockscannerApiKey, setBlockscannerApiKey] = useState<string>("")
   const [displayTypeOfInputFields, setDisplayTypeOfInputFields] = useState<"inherit" | "none">("none")
   const [encodedVotingParameters, setEncodedVotingParameters] = useState<string>("")
+  const [simpleVotingChoices, setSimpleVotingChoices] = useState<Array<{ id: string, address: string }>>([])
 
   const [contractIsFixedByTargetChoice, setContractIsFixedByTargetChoice] = useState<boolean>(false)
+  const [chooseVotingContractsFrom, setChooseVotingContractsFrom] = useState<typeOfContract>("registered")
+
   const linkStyle: CSSProperties = { color: 'lightcoral', fontWeight: "bold" }
+
+
+  async function getSimpleVotingContracts(): Promise<Array<{ id: string, address: string }>> {
+    if (chainId && library) {
+      let signer = library.getSigner()
+      let connectedPlayground = playground.connect(signer)
+      let analytics = await connectedPlayground.analytics()
+      let contracts: Array<{ id: string, address: string }> = []
+      let address = ""
+      // console.log('Analytics', analytics)
+      for (let i = 0; i < analytics[3]; i++) {
+        address = await connectedPlayground.simpleVotingContract(i)
+        contracts.push({ id: i.toString(), address: address })
+      }
+      console.log(contracts)
+      return contracts
+    }
+    return []
+  }
+
 
   useEffect(() => {
     // set initial options for the 
@@ -97,7 +122,17 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     setFunctionSelector(initialNewInstanceValues.targetId)
     setVotingContractAddress(initialNewInstanceValues.votingContract)
     setDeadline(initialNewInstanceValues.deadline)
+
+    // set initial options for the simple voting contracts
+    getSimpleVotingContracts().then(setSimpleVotingChoices).catch(console.log)
+
   }, [])
+
+  useEffect(() => {
+    // set options for the simple voting contracts
+    console.log('Jallo')
+    getSimpleVotingContracts().then(setSimpleVotingChoices).catch(console.log)
+  }, [chainId])
 
 
   const closeDetails = (event: any) => {
@@ -166,9 +201,10 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           registeredVotingContractsSetter(registeredVotingContractsTemp)
           if (contract == ethers.constants.AddressZero) {
             setContractIsFixedByTargetChoice(false)
-            setVotingContractAddress("")
-          }
-          else {
+            setVotingContractAddress("This function has no assigned contract")
+            setChooseVotingContractsFrom("registered")
+
+          } else {
             setContractIsFixedByTargetChoice(true)
             setVotingContractAddress(contract)
           }
@@ -183,6 +219,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     }
   }
 
+
   const handleFunctionSelector = (event: any) => {
     // set the function selector
     setFunctionSelector(event.target.value)
@@ -193,15 +230,52 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     initialNewInstanceValuesTemp.votingContract = votingContractAddress
     initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
     // set calldataInputValues
+    console.log('Check out the value', event.target.value)
+
+    console.log('Check regex of the value', event.target.value.match(isBytes4))
     if (event.target.value.match(isBytes4)) {
-      try {
-        setInitialCalldataInputValuesFromSelector(event.target.value)
-      } catch (err) {
-        console.log('Got error setting initial calldata input values', err)
+      if (library) {
+        playground.connect(library.getSigner()).getAssignedContract(event.target.value).then((contract: string) => {
+          if (contract == ethers.constants.AddressZero) {
+            setContractIsFixedByTargetChoice(false)
+            setVotingContractAddress("")
+          } else {
+            setContractIsFixedByTargetChoice(true)
+            setVotingContractAddress(contract)
+          }
+        }).catch(console.log)
       }
+
+      setInitialCalldataInputValuesFromSelector(event.target.value)
+    } else {
+      setContractIsFixedByTargetChoice(false)
+      setVotingContractAddress("")
     }
+
+    // // set voting contract is fixed or not
+    // if (contract == ethers.constants.AddressZero) {
+    //   setContractIsFixedByTargetChoice(false)
+    //   setVotingContractAddress("This function has no assigned contract")
+    // } else {
+    //   setContractIsFixedByTargetChoice(true)
+    //   setVotingContractAddress(contract)
+    // }
     // set calldata until here
     setCalldata(event.target.value)
+  }
+
+  // simple voting contracts
+
+  const handleSimpleVotingChoicesChange = (event: SingleValue<{ value: string, label: string }>) => {
+    if (event) {
+      setVotingContractAddress(event.value)
+      let initialNewInstanceValuesTemp = { ...initialNewInstanceValues }
+      initialNewInstanceValuesTemp.targetId = functionSelector
+      initialNewInstanceValuesTemp.votingContract = event.value
+      initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
+    }
+    // console.log(event)
+
   }
 
   // handle calldata input values
@@ -245,14 +319,11 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   const handleVotingContractChoicesChange = (event: SingleValue<{ value: string, label: string }>) => {
     // console.log('event', event)
     if (event) {
-      setVotingContractAddressChosenFromMenu(event.value)
-      if (chooseFromRegisteredContracts) {
-        setVotingContractAddress(event.value)
-        let initialNewInstanceValuesTemp = { ...initialNewInstanceValues }
-        initialNewInstanceValuesTemp.targetId = functionSelector
-        initialNewInstanceValuesTemp.votingContract = event.value
-        initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
-      }
+      setVotingContractAddress(event.value)
+      let initialNewInstanceValuesTemp = { ...initialNewInstanceValues }
+      initialNewInstanceValuesTemp.targetId = functionSelector
+      initialNewInstanceValuesTemp.votingContract = event.value
+      initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
     }
   }
 
@@ -409,6 +480,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         In principle any function can be called on any contract. However, the playground contract has certain guards in place. Some Functions
         can only be executed from a certain voting contract.
         <br />
+        <br />
         <input
           type="checkbox"
           checked={chooseFromPlaygroundSelectors}
@@ -419,7 +491,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           Choose target selector from available targets on the playground
         </label>
       </div>
-      <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+      <div style={{ display: "inline-block", width: "50%", padding: "5px" }}>
         <Select
           onChange={(event) => handleFunctionSelectorChoicesChange(event)}
           isDisabled={!chooseFromPlaygroundSelectors}
@@ -434,6 +506,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           classNamePrefix="select"
         ></Select>
       </div>
+
       <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
         <input
           placeholder="Function Selector"
@@ -499,24 +572,28 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
       </div>
       <hr />
       <div>
-        <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
-
-          <input
-            type="checkbox"
-            checked={chooseFromRegisteredContracts}
-            disabled={contractIsFixedByTargetChoice}
-            value={"chooseFromRegisteredContracts"}
-            id="chooseFromRegisteredContracts"
-            onChange={(event) => handleChooseFromRegisteredContracts(event)} />
-          <label style={{ paddingLeft: "10px", color: (contractIsFixedByTargetChoice ? "gray" : "black") }}>
-            Choose voting contract from registered contracts
+        <div
+          onChange={(event: any) => { if (event) setChooseVotingContractsFrom(event.target.name) }}
+          style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+          <label style={{ color: (contractIsFixedByTargetChoice ? "gray" : "black") }}>Choose Voting Contract:  </label><br />
+          <input type="radio" value="registered" name="registered" checked={chooseVotingContractsFrom == "registered"} disabled={contractIsFixedByTargetChoice} />
+          <label style={{ marginLeft: "10px", marginRight: "10px", color: (contractIsFixedByTargetChoice ? "gray" : "black") }}>
+            {"   from registered contracts"}
+          </label><br />
+          <input type="radio" value="simple" name="simple" checked={chooseVotingContractsFrom == "simple"} disabled={contractIsFixedByTargetChoice} />
+          <label style={{ marginLeft: "10px", marginRight: "10px", color: (contractIsFixedByTargetChoice ? "gray" : "black") }}>
+            {"   from contracts added for simple voting"}
+          </label><br />
+          <input type="radio" value="manual" name="manual" checked={chooseVotingContractsFrom == "manual"} disabled={contractIsFixedByTargetChoice} />
+          <label style={{ marginLeft: "10px", marginRight: "10px", color: (contractIsFixedByTargetChoice ? "gray" : "black") }}>
+            {"   manually"}
           </label>
         </div>
-        <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+        <div style={{ display: "inline-block", width: "50%", padding: "5px" }}>
           <Select
             onChange={(event) => handleVotingContractChoicesChange(event)}
-            isDisabled={!chooseFromRegisteredContracts || contractIsFixedByTargetChoice}
-            placeholder="Choose contract"
+            isDisabled={chooseVotingContractsFrom != "registered" || contractIsFixedByTargetChoice}
+            placeholder="Choose voting contract to trigger functions"
             options={registeredVotingContracts.map((ct) => {
               return {
                 value: ct.registrationArgs.contractAddress,
@@ -528,10 +605,37 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
             classNamePrefix="select"
           ></Select>
         </div>
+        <div style={{ display: "inline-block", width: "50%", padding: "5px" }}>
+          <Select
+            onChange={(event: any) => handleSimpleVotingChoicesChange(event)}
+            isDisabled={chooseVotingContractsFrom != "simple" || contractIsFixedByTargetChoice}
+            placeholder="Choose voting contract just for voting"
+            options={simpleVotingChoices.map((vch) => {
+              return {
+                value: vch.address,
+                label: `#${vch.id} (${vch.address})`
+              }
+            })}
+            className="basic-select"
+            classNamePrefix="select"
+          ></Select>
+        </div>
+        <br />
         <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
-          <input
-            placeholder="Voting Contract"
-            disabled={chooseFromRegisteredContracts}
+          Voting Contract address
+          <span style={{ paddingLeft: "10px", display: (votingContractAddress.length == 42 ? "inline" : "none") }}>
+            {"(See on "}
+            <a href={getBlockexplorerBaseUrlFromChainId(chainId ? chainId : 1, false) + "/address/" + votingContractAddress}>
+              {getBlockexplorerBaseUrlFromChainId(chainId ? chainId : 1, false).slice(8,)}
+            </a>
+            {")"}
+          </span>:
+          <br />
+          <textarea
+            cols={42}
+            rows={1}
+            placeholder="Address"
+            disabled={chooseVotingContractsFrom != "manual" || contractIsFixedByTargetChoice}
             defaultValue={initialNewInstanceValuesFromPlayground.votingContract ? initialNewInstanceValuesFromPlayground.votingContract : "none"}
             value={votingContractAddress}
             onChange={(event) => handleVotingContractAddress(event)}

@@ -446,10 +446,49 @@
   },
   "mainnet": {
     "VotingRegistry": {
-      "address": "0xC535389b5a26efEbc27811915B6d78f6C95433f7",
+      "address": "0x5e2e5d08811d443DA6F75257bC80Bb8dE6b6e943",
       "path": "src/registration/registry/VotingRegistry.sol",
       "arguments": [
         "\"0x9452d78d\""
+      ]
+    },
+    "MajorityVoteWithNFTQuorumAndOptionalDVGuard": {
+      "address": "0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E",
+      "date": "Mon Jan 30 2023 06:00:37 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 2002784,
+      "path": "src/implementations/votingContracts/SimpleMajorityVote/MajorityVoteWithNFTQuorumAndOptionalDVGuard.sol",
+      "arguments": []
+    },
+    "PlainMajorityVoteWithQuorum": {
+      "address": "0xbC4b82c1bda7E0a65F1AB3F1Ac6457E562f377E5",
+      "date": "Mon Jan 30 2023 06:00:49 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 1589925,
+      "path": "src/implementations/votingContracts/SimpleMajorityVote/PlainMajorityVoteWithQuorum.sol",
+      "arguments": []
+    },
+    "VotingPlayground": {
+      "address": "0x345A813749E4A795Eea692353e21C1827D2686c4",
+      "date": "Mon Jan 30 2023 06:17:25 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 7327794,
+      "path": "src/examples/playground/Playground.sol",
+      "arguments": [
+        "\"0x5e2e5d08811d443DA6F75257bC80Bb8dE6b6e943\"",
+        "[\"0x018f92cafb\",\"0x01a0e8ca96\",\"0x0132d7b3b9\",\"0x01fabfdb1d\",\"0x01a6629027\",\"0x01ef4a45a1\",\"0x011d0a40c9\",\"0x003d974365\",\"0x00c519fdc5\",\"0x005698d48a\",\"0x00ec9ad785\",\"0x004dea6274\",\"0x003048760d\",\"0x0053ead2d3\",\"0x00df610fcd\",\"0x0091fae275\",\"0x007336aaf0\",\"0x00204d899d\",\"0x00458b8f48\"]",
+        "[\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0xbC4b82c1bda7E0a65F1AB3F1Ac6457E562f377E5\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0xbC4b82c1bda7E0a65F1AB3F1Ac6457E562f377E5\",\"0xbC4b82c1bda7E0a65F1AB3F1Ac6457E562f377E5\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\",\"0x383A055ACd722eB53Bf4DB01eAC65BeFEA85857E\"]",
+        "[432000,86400,1209600,432000,432000,432000,432000,432000,90,86400,86400,86400,300,300,300,300,300,300,300]",
+        "[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]",
+        "[true,true,true,true,true,true,true,true,true,false,true,true,false,false,true,true,true,true,true]",
+        "\"0xf3d951ad616f668f78eb278dab9d3efb85de3376e6a3f684e36f906fd24fff20\""
+      ]
+    },
+    "PlaygroundVotingBadge": {
+      "address": "0x8Ead46B5F03128d65569AC89fA7A418D7FA8b01D",
+      "date": "Mon Jan 30 2023 06:19:05 GMT+0100 (Central European Standard Time)",
+      "gasLimit": 3316573,
+      "path": "src/examples/playground/VotingBadge.sol",
+      "arguments": [
+        "\"Playground Voting Badge\"",
+        "\"PLAY\""
       ]
     }
   },

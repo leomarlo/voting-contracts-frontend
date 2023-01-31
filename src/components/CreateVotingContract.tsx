@@ -263,6 +263,7 @@ const createVotingContract: () => JSX.Element = () => {
           <input
             value={contractName}
             key="ContractNameSelection"
+            size={50}
             type="text"
             placeholder="Please select a name ..."
             onChange={handleContractNameChange}

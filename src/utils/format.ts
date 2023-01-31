@@ -11,8 +11,8 @@ const ellipseString = (value: string, length: number = 4) => {
 const isAddress = new RegExp(`^0x[0-9A-Fa-f]{40}$`)
 const isBytesN = (digits: number) => { return new RegExp(`^0x[0-9A-Fa-f]{${digits * 2}}$`) }
 const isUint = new RegExp(`^[0-9]+$`)
-const isBytes = new RegExp(`^[0-9A-Za-z]+$`)
-const isBytes4 = new RegExp(`^[0-9A-Za-z]{8}$`)
+const isBytes = new RegExp(`^0x[0-9A-Za-z]+$`)
+const isBytes4 = new RegExp(`^0x[0-9A-Za-z]{8}$`)
 
 const type2RegexTest = (type: string) => {
   if (type.startsWith('bytes')) {
