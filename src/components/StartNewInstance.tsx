@@ -130,7 +130,6 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
 
   useEffect(() => {
     // set options for the simple voting contracts
-    console.log('Jallo')
     getSimpleVotingContracts().then(setSimpleVotingChoices).catch(console.log)
   }, [chainId])
 
@@ -144,7 +143,6 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
   // handle selector choices
   const setInitialCalldataInputValuesFromSelector = (value: string) => {
     let fnct = playground.interface.getFunction(value)
-    console.log('function is', fnct)
     if (fnct) {
       let _calldataInputValues: Array<CalldataInputValues> = fnct.inputs.map((inp) => {
         return {
@@ -230,26 +228,26 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     initialNewInstanceValuesTemp.votingContract = votingContractAddress
     initialNewInstanceValuesSetter(initialNewInstanceValuesTemp)
     // set calldataInputValues
-    console.log('Check out the value', event.target.value)
 
-    console.log('Check regex of the value', event.target.value.match(isBytes4))
     if (event.target.value.match(isBytes4)) {
       if (library) {
         playground.connect(library.getSigner()).getAssignedContract(event.target.value).then((contract: string) => {
           if (contract == ethers.constants.AddressZero) {
             setContractIsFixedByTargetChoice(false)
             setVotingContractAddress("")
+            setCalldataInputValues([])
           } else {
             setContractIsFixedByTargetChoice(true)
             setVotingContractAddress(contract)
+            setInitialCalldataInputValuesFromSelector(event.target.value)
           }
         }).catch(console.log)
       }
 
-      setInitialCalldataInputValuesFromSelector(event.target.value)
     } else {
       setContractIsFixedByTargetChoice(false)
       setVotingContractAddress("")
+      setCalldataInputValues([])
     }
 
     // // set voting contract is fixed or not
@@ -621,7 +619,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
           ></Select>
         </div>
         <br />
-        <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
+        <div style={{ display: "inline-block", width: "100%", paddingLeft: "5px", paddingBottom: "10px" }}>
           Voting Contract address
           <span style={{ paddingLeft: "10px", display: (votingContractAddress.length == 42 ? "inline" : "none") }}>
             {"(See on "}
@@ -759,7 +757,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         </textarea>
       </div>
       <hr />
-      <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "50px", width: "100%" }}>
         <button
           className="btn btn-success"
           onClick={submitCreateVotingInstance}
