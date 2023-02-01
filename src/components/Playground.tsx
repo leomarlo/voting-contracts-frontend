@@ -98,11 +98,15 @@ const getPlaygroundInstances = async (signer: ethers.providers.JsonRpcSigner, pl
   // console.log('chainId', chainId, '\nSigner', await signer.getAddress(), '\nPlayground') //, await playground.VOTING_REGISTRY())
   let playgroundInternalInstances: Array<InstanceInternalInfoAndPointer> = await getPlaygroundInstancesInternal(playground)
   let newInstances: Array<VotingInstanceInfo> = []
+  const generalVotingInterface = await getGeneralVotingInterface(false)
+  const externalInfos = await Promise.all(playgroundInternalInstances.map((inst, i) => {
+    return getVotingInstanceExternalInfo(signer, inst.pointer.votingContractAddress, generalVotingInterface, inst.pointer.identifier)
+  }))
   for (let i = 0; i < playgroundInternalInstances.length; i++) {
     let inst: InstanceInternalInfoAndPointer = playgroundInternalInstances[i]
     let newInstance: VotingInstanceInfo = {
       ...inst,
-      external: await getVotingInstanceExternalInfo(signer, inst.pointer.votingContractAddress, await getGeneralVotingInterface(false), inst.pointer.identifier),
+      external: externalInfos[i],
       chainInfo: {
         successfulAttempt: false,
         successfulImplement: false,
