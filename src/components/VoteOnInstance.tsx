@@ -346,7 +346,15 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
               <tr>
                 <th scope="col" >Token Balance</th>
                 <td>
-                  {`${getBalance(tokenInfo.balance, tokenInfo.decimals)}`}
+                  {
+                    `${getBalance(tokenInfo.balance, tokenInfo.decimals)}` +
+                    (tokenInfo.balanceBySelector ?
+                      ` (` +
+                      `start: ${tokenInfo.balanceBySelector?.start.toString()}, ` +
+                      `vote: ${tokenInfo.balanceBySelector?.vote.toString()}, ` +
+                      `implement: ${tokenInfo.balanceBySelector?.implement.toString()})` :
+                      ""
+                    )}
                 </td>
               </tr>
             </>

@@ -42,6 +42,17 @@ const TOKEN_MINIMAL_ABI = [
 const TOKEN_WITH_ERC165_INTERFACE = TOKEN_MINIMAL_ABI.concat([
   "function supportsInterface(bytes4) external view returns (bool)"
 ])
+
+const BADGE_TOKEN_INTERFACE = TOKEN_WITH_ERC165_INTERFACE.concat([
+  "function mint(address to, uint256 index, bytes4 selector, address votingContract) external",
+  "function exists(uint256 tokenId) external view returns(bool)",
+  "function balanceOfSignature(address owner, bytes4 selector) view external returns(uint256)",
+  "function changeEnableTradingThreshold(uint256 newThreshold) external",
+  "function changeTradingEnabledGlobally(bool enable) external",
+  "function approveContract(address newContract, bool approval) external returns(bool)"
+])
+
+
 const ERC165_ID = "0x01ffc9a7"
 const ERC721_ID = "0x80ac58cd"
 const ERC1155_ID = "0xd9b67a26"
@@ -252,6 +263,8 @@ async function getContractABIFromEtherscan(contractAddress: string, apiKey: stri
 
 }
 
+type queryViewFunction<T> = { result: T, message: string }
+
 interface ErcInterfaceFlags {
   erc165: boolean,
   erc721: boolean,
@@ -263,6 +276,11 @@ interface TokenInfo {
   symbol: string,
   address: string,
   balance: ethers.BigNumber,
+  balanceBySelector: {
+    start: ethers.BigNumber,
+    vote: ethers.BigNumber,
+    implement: ethers.BigNumber
+  } | undefined,
   decimals: ethers.BigNumber | undefined,
   interfaces: ErcInterfaceFlags
 }
@@ -336,6 +354,212 @@ async function getPlaygroundInstancesFromEvents(playgroundContract: ethers.Contr
   })
 }
 
+async function getResult(
+  votingContract: ethers.Contract,
+  identifier: ethers.BigNumber
+): Promise<queryViewFunction<{ result: string }>> {
+  let message: string = ""
+  let result: string
+  try { result = await votingContract.result(identifier) }
+  catch (err) { result = ""; message = "No result has been found!\n" }
+  return { result: { result: result }, message: message }
+}
+
+async function getDeadline(
+  votingContract: ethers.Contract,
+  identifier: ethers.BigNumber
+): Promise<queryViewFunction<{ deadline: string | undefined, ttl: number | undefined }>> {
+  let message: string = ""
+  let deadline: string | undefined
+  let ttl: number | undefined
+  try {
+    let deadlineInSeconds = (await votingContract.getDeadline(identifier)).toNumber()
+    deadline = (new Date(deadlineInSeconds * 1000)).toLocaleString();
+    let currentTimeInSeconds = Math.floor(Date.now() / 1000)
+    ttl = Math.max(deadlineInSeconds - currentTimeInSeconds, 0)
+  } catch (err) {
+    message += 'No getDeadline method found!\n'
+    deadline = undefined
+    ttl = undefined
+  }
+  return { result: { deadline: deadline, ttl: ttl }, message: message }
+}
+
+async function getStatus(
+  votingContract: ethers.Contract,
+  identifier: ethers.BigNumber
+): Promise<queryViewFunction<{ status: string }>> {
+  let message: string = ""
+  let status: string = "0"
+  try {
+    status = (await votingContract.getStatus(identifier)).toString()
+  } catch (err) { message += 'No getStatus method found!\n' }
+
+  return { result: { status: status }, message: message }
+}
+
+
+async function getTokenDecimals(
+  token: ethers.Contract
+): Promise<queryViewFunction<{ decimals: ethers.BigNumber | undefined }>> {
+  let message: string = ""
+  let decimals = ethers.BigNumber.from("0")
+  try { decimals = (await token.decimals()) }
+  catch (err) { message = 'No Decimals method found!\n' }
+  return { result: { decimals: decimals }, message: message }
+}
+
+async function getTokenName(
+  token: ethers.Contract
+): Promise<queryViewFunction<{ name: string }>> {
+  let message: string = ""
+  let name: string = ""
+  try { name = (await token.name()) }
+  catch (err) { message = 'No token name found!\n' }
+  return { result: { name: name }, message: message }
+}
+
+async function getTokenSymbol(
+  token: ethers.Contract
+): Promise<queryViewFunction<{ symbol: string }>> {
+  let message: string = ""
+  let symbol: string = ""
+  try { symbol = (await token.symbol()) }
+  catch (err) { message = 'No token symbol found!\n' }
+  return { result: { symbol: symbol }, message: message }
+}
+
+async function getTokenBalance(
+  token: ethers.Contract,
+  address: string
+): Promise<queryViewFunction<{ balance: ethers.BigNumber }>> {
+  let message: string = ""
+  let balance = ethers.BigNumber.from("0")
+  try { balance = (await token.balanceOf(address)) }
+  catch (err) { message = 'No token balance method found!\n' }
+  return { result: { balance: balance }, message: message }
+}
+
+async function getTokenBalanceOfSelectorstoken(
+  token: ethers.Contract,
+  startSelector: string,
+  voteSelector: string,
+  implementSelector: string,
+  address: string
+): Promise<queryViewFunction<{
+  start: ethers.BigNumber,
+  vote: ethers.BigNumber,
+  implement: ethers.BigNumber
+} | undefined>> {
+  let message: string = ""
+  let result: {
+    start: ethers.BigNumber,
+    vote: ethers.BigNumber,
+    implement: ethers.BigNumber
+  } | undefined = undefined
+  try {
+    let balanceResults = await Promise.all([
+      token.balanceOfSignature(address, startSelector),
+      token.balanceOfSignature(address, voteSelector),
+      token.balanceOfSignature(address, implementSelector)
+    ])
+    result = { start: balanceResults[0], vote: balanceResults[1], implement: balanceResults[2] }
+  } catch (err) { message = 'No token balance for selectors method found!\n' }
+  return { result: result, message: message }
+}
+
+
+async function getTokenSpecs(
+  signerAddress: string,
+  token: ethers.Contract
+): Promise<queryViewFunction<{
+  name: string,
+  symbol: string,
+  decimals: ethers.BigNumber | undefined,
+  balance: ethers.BigNumber
+}>> {
+
+  let tokenSpecs: Array<{ result: any, message: string }> = await Promise.all(
+    [
+      getTokenName(token),
+      getTokenSymbol(token),
+      getTokenDecimals(token),
+      getTokenBalance(token, signerAddress)
+    ]
+  )
+  return {
+    result:
+    {
+      name: tokenSpecs[0].result.name,
+      symbol: tokenSpecs[1].result.symbol,
+      decimals: tokenSpecs[2].result.decimals,
+      balance: tokenSpecs[3].result.balance,
+    },
+    message: tokenSpecs.map(r => r.message).join("")
+  }
+
+}
+
+async function getTokenERCInterfaces(
+  token: ethers.Contract
+): Promise<queryViewFunction<{ interfaces: ErcInterfaceFlags }>> {
+  let message: string = ""
+  let interfaces: ErcInterfaceFlags = { erc165: false, erc721: false, erc1155: false }
+  try {
+    let interfacesResolution = await Promise.all(
+      [
+        token.supportsInterface(ERC165_ID),
+        token.supportsInterface(ERC721_ID),
+        token.supportsInterface(ERC1155_ID)
+      ]
+    )
+    interfaces = {
+      erc165: interfacesResolution[0],
+      erc721: interfacesResolution[1],
+      erc1155: interfacesResolution[2]
+    }
+  } catch (err) { message = 'No supportsInterface method found!\n' }
+  return { result: { interfaces: interfaces }, message: message }
+}
+
+
+
+async function getTokenInfo(
+  signer: ethers.providers.JsonRpcSigner,
+  signerAddress: string,
+  votingContract: ethers.Contract,
+  identifier: ethers.BigNumber
+): Promise<queryViewFunction<{ token: TokenInfo | undefined }>> {
+  let message: string = ""
+  let token: TokenInfo | undefined = undefined
+
+  try {
+    let tokenAddress = await votingContract.getToken(identifier)
+    let tokenInterface = new ethers.Contract(tokenAddress, BADGE_TOKEN_INTERFACE, signer)
+    let result = await Promise.all(
+      [
+        getTokenSpecs(signerAddress, tokenInterface),
+        getTokenBalanceOfSelectorstoken(tokenInterface, votingContract.interface.getSighash("start"), votingContract.interface.getSighash("vote"), votingContract.interface.getSighash("implement"), signerAddress),
+        getTokenERCInterfaces(tokenInterface)
+      ]
+    )
+    token = {
+      address: tokenAddress,
+      name: result[0].result.name,
+      symbol: result[0].result.symbol,
+      decimals: result[0].result.decimals,
+      balance: result[0].result.balance,
+      balanceBySelector: result[1].result,
+      interfaces: result[2].result.interfaces
+    }
+
+    message += result.map(r => r.message).join("")
+  } catch (err) { message = 'No getToken method found!\n' + JSON.stringify(err) + '\n' }
+  return { result: { token: token }, message: message }
+}
+
+
+
 async function getVotingInstanceExternalInfo(
   signer: ethers.providers.JsonRpcSigner,
   votingContractAddress: string,
@@ -348,6 +572,7 @@ async function getVotingInstanceExternalInfo(
 
   let votingInstanceExternalInfo = {} as VotingInstanceExternalInfo
   let message = ''
+
   // instantiate contract 
   let votingContract = new ethers.Contract(votingContractAddress, votingContractABI, signer)
 
@@ -357,62 +582,31 @@ async function getVotingInstanceExternalInfo(
   // identifier
   votingInstanceExternalInfo.identifier = identifier
 
-  // result
-  votingInstanceExternalInfo.result = await votingContract.result(identifier)
-  // deadline
-  try {
-    let deadlineInSeconds = (await votingContract.getDeadline(identifier)).toNumber()
-    votingInstanceExternalInfo.deadline = (new Date(deadlineInSeconds * 1000)).toLocaleString();
-    let currentTimeInSeconds = Math.floor(Date.now() / 1000)
-    votingInstanceExternalInfo.ttl = Math.max(deadlineInSeconds - currentTimeInSeconds, 0)
-  } catch (err) { console.log('getDeadline', err); message += 'No getDeadline method found!\n' }
+  /* Define all the promises that we try to resolve in parallel */
+  let result: Array<{ result: any, message: string }> = await Promise.all(
+    [
+      getResult(votingContract, identifier),
+      getDeadline(votingContract, identifier),
+      getStatus(votingContract, identifier),
+      getTokenInfo(signer, signerAddress, votingContract, identifier)
+    ]
+  )
 
-  // status
-  try {
-    let status = (await votingContract.getStatus(identifier))
-    votingInstanceExternalInfo.status = status.toString()
-  } catch (err) { console.log('getStatus', err); message += 'No getStatus method found!\n' }
+  votingInstanceExternalInfo.result = result[0].result.result
+  votingInstanceExternalInfo.deadline = result[1].result.deadline
+  votingInstanceExternalInfo.ttl = result[1].result.ttl
+  votingInstanceExternalInfo.status = result[2].result.status
+  votingInstanceExternalInfo.token = result[3].result.token
+
+
+  message = result.map(r => r.message).join("")
+
 
   // target 
   try {
     let targetAddress = (await votingContract.getTarget(identifier))
     votingInstanceExternalInfo.targetAddress = targetAddress
   } catch (err) { console.log('getTarget', err); message += 'No getTarget method found!\n' }
-
-  // token
-  try {
-    let tokenInfo = {} as TokenInfo
-    let tokenAddress = await votingContract.getToken(identifier)
-    tokenInfo.address = tokenAddress
-    try {
-      let tokenInterface = new ethers.Contract(tokenAddress, TOKEN_WITH_ERC165_INTERFACE, signer)
-      let name = (await tokenInterface.name())
-      let symbol = (await tokenInterface.symbol())
-      // TODO: Decimals!!!
-      try {
-        tokenInfo.decimals = (await tokenInterface.decimals())
-      } catch (err) { console.log('getStatus', err); message += 'No Decimals method found!\n' }
-      // let decimals = (await tokenInterface.decimals())
-      let balance = (await tokenInterface.balanceOf(signerAddress))
-
-      tokenInfo.name = name
-      tokenInfo.symbol = symbol
-      tokenInfo.balance = balance
-      let interfaces = {} as ErcInterfaceFlags
-      try {
-        let supports_erc165 = await tokenInterface.supportsInterface(ERC165_ID)
-        let supports_erc721 = await tokenInterface.supportsInterface(ERC721_ID)
-        let supports_erc1155 = await tokenInterface.supportsInterface(ERC1155_ID)
-        interfaces = {
-          erc165: supports_erc165,
-          erc721: supports_erc721,
-          erc1155: supports_erc1155
-        }
-        tokenInfo.interfaces = interfaces
-      } catch (err) { console.log('supportsInterface', err); message += 'No supportsInterface found method found!\n' }
-    } catch (err) { console.log('token name', err); message += 'No token name or symbol found method found!\n' }
-    votingInstanceExternalInfo.token = tokenInfo
-  } catch (err) { console.log('getToken', err); message += 'No getToken method found!\n' }
 
   // double voting
   try {
