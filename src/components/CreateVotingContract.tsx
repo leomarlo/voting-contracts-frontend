@@ -134,7 +134,7 @@ const createVotingContract: () => JSX.Element = () => {
         if (c == ContentKeys.Name) {
           return `contract ${content[ContentKeys.Name].rows[0].text} ${hasDependencies}\n`
         }
-        return content[c as ContentKeys].rows.map(r => r.text).join('\n') + "\n"
+        return content[c as ContentKeys].rows.map(r => r.text).join('\n') + "\n\n"
       }
       return ""
     }).join("") + (content[ContentKeys.Name].visible ? end : "");
@@ -148,7 +148,7 @@ const createVotingContract: () => JSX.Element = () => {
     if (event) {
       let contractCodeTemp = { ...contractCode }
       contractCodeTemp.content[ContentKeys.License] = {
-        rows: ["// SPDX-License-Identifier: " + event.value, ""]
+        rows: ["// SPDX-License-Identifier: " + event.value]
           .map(t => { return { text: t, info: "license" } }),
         visible: true
       }
@@ -164,7 +164,7 @@ const createVotingContract: () => JSX.Element = () => {
     if (event) {
       let contractCodeTemp = { ...contractCode }
       contractCodeTemp.content[ContentKeys.Pragma] = {
-        rows: [`pragma solidity ${event.value};`, ""]
+        rows: [`pragma solidity ${event.value};`]
           .map(t => { return { text: t, info: "pragma" } }),
         visible: true
       }
