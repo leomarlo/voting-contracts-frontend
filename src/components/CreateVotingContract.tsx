@@ -22,6 +22,7 @@ enum ContentKeys {
   Imports,
   Info,
   Name,
+  Constructor,
   EncodeDecode,
   Deadline,
   GetDeadline,
@@ -30,11 +31,7 @@ enum ContentKeys {
 
 type ContentMappingForContractCode = {
   [name in ContentKeys]: {
-    rows: Array<{ text: string, info: string }>,
-    variables: Array<{ text: string, info: string }>,
-    events: Array<{ text: string, info: string }>,
-    errors: Array<{ text: string, info: string }>,
-    functions: Array<{ text: string, info: string }>,
+    rows: Array<{ text: string, info: string }>
     visible: boolean
   }
 }
@@ -43,7 +40,12 @@ interface ContractCode {
   text: string,
   content: ContentMappingForContractCode,
   totalRows: number,
-  reverseLookup: { [key: string]: Array<ContentKeys> }
+  reverseLookup: { [key: string]: Array<ContentKeys> },
+  variables: { [key: string]: Array<string> },
+  events: { [key: string]: Array<string> },
+  errors: { [key: string]: Array<string> },
+  functions: { [key: string]: Array<{ name: string, content: Array<string> }> },
+  modifiers: { [key: string]: Array<{ name: string, content: Array<string> }> },
   allowEditing: boolean
 }
 
@@ -60,21 +62,28 @@ const createVotingContract: () => JSX.Element = () => {
     text: "",
     totalRows: 6,
     content: {
-      [ContentKeys.License]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.Pragma]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.Imports]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.Info]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.Name]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.EncodeDecode]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.Deadline]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.GetDeadline]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
-      [ContentKeys.SupportsInterface]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.License]: { rows: [], visible: false },
+      [ContentKeys.Pragma]: { rows: [], visible: false },
+      [ContentKeys.Imports]: { rows: [], visible: false },
+      [ContentKeys.Info]: { rows: [], visible: false },
+      [ContentKeys.Name]: { rows: [], visible: false },
+      [ContentKeys.Constructor]: { rows: [], visible: false },
+      [ContentKeys.EncodeDecode]: { rows: [], visible: false },
+      [ContentKeys.Deadline]: { rows: [], visible: false },
+      [ContentKeys.GetDeadline]: { rows: [], visible: false },
+      [ContentKeys.SupportsInterface]: { rows: [], visible: false },
     },
     reverseLookup: {},
+    variables: {},
+    events: {},
+    errors: {},
+    functions: {},
+    modifiers: {},
     allowEditing: false
   })
   const [contractName, setContractName] = useState<string>("")
   const [votingParamOptions, setVotingParamOptions] = useState<VotingParamOptions>({})
+  const [functionInspection, setFunctionInspection] = useState<{ option?: string, function?: string }>({})
 
   const updateContractCode = (ev: any) => {
     let contractCodeTemp = { ...contractCode }
@@ -141,10 +150,6 @@ const createVotingContract: () => JSX.Element = () => {
       contractCodeTemp.content[ContentKeys.License] = {
         rows: ["// SPDX-License-Identifier: " + event.value, ""]
           .map(t => { return { text: t, info: "license" } }),
-        variables: [],
-        events: [],
-        errors: [],
-        functions: [],
         visible: true
       }
       let text = getTextFromContentRows(contractCodeTemp.content)
@@ -161,10 +166,6 @@ const createVotingContract: () => JSX.Element = () => {
       contractCodeTemp.content[ContentKeys.Pragma] = {
         rows: [`pragma solidity ${event.value};`, ""]
           .map(t => { return { text: t, info: "pragma" } }),
-        variables: [],
-        events: [],
-        errors: [],
-        functions: [],
         visible: true
       }
       let text = getTextFromContentRows(contractCodeTemp.content)
@@ -180,10 +181,6 @@ const createVotingContract: () => JSX.Element = () => {
     contractCodeTemp.content[ContentKeys.Name] = {
       rows: [event.target.value]
         .map(t => { return { text: t, info: "name" } }),
-      variables: [],
-      events: [],
-      errors: [],
-      functions: [],
       visible: true
     }
     let text = getTextFromContentRows(contractCodeTemp.content)
@@ -191,6 +188,7 @@ const createVotingContract: () => JSX.Element = () => {
     contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
     setContractCode(contractCodeTemp)
   }
+
 
   const handleChooseVotingParams = (event: any, typeOfVotingParam: string) => {
     let votingParamOptionsTemp = { ...votingParamOptions }
@@ -202,29 +200,56 @@ const createVotingContract: () => JSX.Element = () => {
       // handling the info
       let contractCodeTemp = { ...contractCode }
       if (event.target.checked) {
+        // add the content whereever it is needed
         contractCodeTemp.content[ContentKeys.Imports] = {
           rows: [`import { Deadline } from "@leomarlo/voting-registry-contracts/src/extensions/primitives/Deadline.sol";`]
             .map(t => { return { text: t, info: "deadline" } }),
-          variables: [{ text: "mapping(uint256=>uint256) internal _deadline;", info: "deadline" }],
-          events: [],
-          errors: [
-            { text: "DeadlineHasPassed(uint256 identifier, uint256 deadline);", info: "deadline" },
-            { text: "DeadlineHasNotPassed(uint256 identifier, uint256 deadline);", info: "deadline" }
-          ],
-          functions: [],
           visible: true
         }
+
+
+        contractCodeTemp.variables["deadline"] = ["mapping(uint256=>uint256) internal _deadline;"]
+
+        contractCodeTemp.errors["deadline"] = [
+          "DeadlineHasPassed(uint256 identifier, uint256 deadline);",
+          "DeadlineHasNotPassed(uint256 identifier, uint256 deadline);"
+        ]
+        contractCodeTemp.functions["deadline"] = [
+          {
+            name: "function _setDeadline(uint256 identifier, uint256 duration) internal;",
+            content: [
+              "function _setDeadline(uint256 identifier, uint256 duration) internal {",
+              "\t_deadline[identifier] = block.timestamp + duration;",
+              "}"
+            ]
+          },
+          {
+            name: "function _deadlineHasPassed(uint256 identifier) internal view returns(bool hasPassed);",
+            content: [
+              "function _deadlineHasPassed(uint256 identifier) internal view returns(bool hasPassed) {",
+              "\thasPassed = block.timestamp > _deadline[identifier];",
+              "}"
+            ]
+          }
+
+        ]
         contractCodeTemp.reverseLookup["deadline"] = [ContentKeys.Imports] // change to push
       } else {
+        // delete the rows with deadline in them
         for (let contentKey of contractCodeTemp.reverseLookup["deadline"]) {
           contractCodeTemp.content[contentKey].rows = contractCodeTemp.content[contentKey].rows.filter(r => {
             return r.info != "deadline"
           })
-          contractCodeTemp.content[contentKey].variables = contractCodeTemp.content[contentKey].variables.filter(v => {
-            return v.info != "deadline"
-          })
           contractCodeTemp.content[contentKey].visible = false
         }
+
+        // delete the deadline variables, errors, events, functions and modifiers
+        contractCodeTemp.variables["deadline"] = []
+        contractCodeTemp.variables["errors"] = []
+        contractCodeTemp.variables["events"] = []
+        contractCodeTemp.variables["functions"] = []
+        contractCodeTemp.variables["modifiers"] = []
+
       }
 
       let text = getTextFromContentRows(contractCodeTemp.content)
@@ -234,6 +259,21 @@ const createVotingContract: () => JSX.Element = () => {
 
 
     }
+  }
+
+
+  const handleSeeFunction = (event: any, option: string, func: string) => {
+    let tempFunctionInspection = { ...functionInspection }
+    if (functionInspection.option == option) {
+      tempFunctionInspection.option = undefined
+      tempFunctionInspection.function = undefined
+
+    } else {
+
+      tempFunctionInspection.option = option
+      tempFunctionInspection.function = func
+    }
+    setFunctionInspection(tempFunctionInspection)
   }
 
 
@@ -360,23 +400,76 @@ const createVotingContract: () => JSX.Element = () => {
           style={{ padding: "5px", marginTop: "10px" }}
           key="VotingContractVariablesDiv">
           <h6 style={{ margin: "5px", padding: "5px" }}>Available Variables <span style={{ color: "red" }}>{(contractCode.allowEditing ? "\t(EDITING ENABLED. CANNOT TRACK VARIABLES!)" : "")}</span></h6>
-          <div style={{ backgroundColor: "#ddd", margin: "5px", padding: "5px", borderStyle: "solid", borderWidth: "1px", borderColor: "#aaa" }}>
-            {Object.keys(contractCode.content).map((key: any) => {
+          <div style={{ fontFamily: "monospace", backgroundColor: "#ddd", margin: "5px", padding: "5px", borderStyle: "solid", borderWidth: "1px", borderColor: "#aaa" }}>
+            {Object.keys(contractCode.variables).map((key: any) => {
               return (
                 <>
-                  {contractCode.content[key as ContentKeys].variables.map((v: { text: string, info: string }) => {
-                    return (
-                      <>
-                        {v.text}
-                        <br />
-                      </>
-                    )
-                  })}
+                  {"// " + key}<br />
+                  {contractCode.variables[key].map(v => { return <>{v}</> })}
+                  <br />
                 </>
               )
 
             })}
           </div>
+
+          <h6 style={{ margin: "5px", padding: "5px" }}>Available Functions <span style={{ color: "red" }}>{(contractCode.allowEditing ? "\t(EDITING ENABLED. CANNOT TRACK VARIABLES!)" : "")}</span></h6>
+          <div style={{ fontFamily: "monospace", backgroundColor: "#ddd", margin: "5px", padding: "5px", borderStyle: "solid", borderWidth: "1px", borderColor: "#aaa" }}>
+            {Object.keys(contractCode.functions).map((key: any) => {
+              return (
+                <>
+                  {"// " + key}<br />
+                  {contractCode.functions[key].map(v => {
+                    return (
+                      <>
+                        <span onClick={(event) => handleSeeFunction(event, key, v.name)}>
+                          {v.name}
+                        </span>
+                        <br />
+                      </>)
+                  })}
+                  <br />
+                </>
+              )
+
+            })}
+          </div>
+          <div style={{
+            display: functionInspection.option ? "inline-block" : "none"
+          }}>
+            <h6 style={{ margin: "5px", padding: "5px" }}>Inspect Function </h6>
+            <div
+              style={{
+                fontFamily: "monospace",
+                backgroundColor: "#ddd", margin: "5px", padding: "5px", borderStyle: "solid", borderWidth: "1px", borderColor: "#aaa"
+              }}>
+
+              {
+                functionInspection.option ?
+                  contractCode.functions[functionInspection.option].filter(f => {
+                    return (f.name == functionInspection.function)
+                  })[0].content.map(row => {
+                    let tab = "\t"
+                    let indentationsMatch = row.match(RegExp(`[${tab}]*`))
+                    return (
+                      <>
+                        {indentationsMatch ?
+                          <div style={{ color: "darkgoldenrod", display: "inline", marginLeft: `${indentationsMatch[0].length * (10 * 4)}px` }}>
+                            {row}
+                          </div> :
+                          <div style={{ color: "darkgoldenrod", display: "inline" }}>
+                            {row}
+                          </div>
+                        }
+                        <br />
+                      </>
+                    )
+                  }) :
+                  ""
+              }
+            </div>
+          </div>
+
         </div>
       </div>
 
