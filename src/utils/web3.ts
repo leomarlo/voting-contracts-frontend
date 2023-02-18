@@ -9,7 +9,6 @@ import votingRegistryABI from '../abis/VotingRegistry'
 import { RegisteredContractsEventArgs } from "../types/components"
 
 
-
 const PROTOCOL = "https://"
 const BASE_URL = "raw.githubusercontent.com/leomarlo/voting-registry-contracts"
 const BRANCH = "development"
@@ -263,6 +262,7 @@ async function getContractABIFromEtherscan(contractAddress: string, apiKey: stri
 
 }
 
+
 type queryViewFunction<T> = { result: T, message: string }
 
 interface ErcInterfaceFlags {
@@ -279,7 +279,8 @@ interface TokenInfo {
   balanceBySelector: {
     start: ethers.BigNumber,
     vote: ethers.BigNumber,
-    implement: ethers.BigNumber
+    implement: ethers.BigNumber,
+    other: ethers.BigNumber
   } | undefined,
   decimals: ethers.BigNumber | undefined,
   interfaces: ErcInterfaceFlags
@@ -311,7 +312,8 @@ interface TargetInterface {
   id: string,
   name?: string,
   isFunction: boolean,
-  calldata: string
+  calldata: string,
+  decoded?: Array<{ name: string, value: string }>
 }
 
 interface InstanceInternalInfo {
@@ -348,6 +350,16 @@ async function getPlaygroundInstancesFromEvents(playgroundContract: ethers.Contr
     }
     if (target.isFunction) {
       target.name = playgroundContract.interface.getFunction(target.id).name
+      let decodedObject = playgroundContract.interface.decodeFunctionData(target.name, calldata)
+      let allKeys = Object.keys(decodedObject)
+      let decoded: Array<{ name: string, value: string }> = allKeys.slice(Math.floor(allKeys.length / 2),).map((k: string) => {
+        return {
+          name: k,
+          value: decodedObject[k as string]
+        }
+      })
+      target.decoded = decoded
+      // console.log('decoded RESULT:::', allKeys.slice(Math.floor(allKeys.length / 2),))
     }
     let instanceInternalInfo: InstanceInternalInfo = { index: e.args?.index, sender: e.args?.sender, target: target }
     return instanceInternalInfo
@@ -471,32 +483,66 @@ async function getTokenBalanceOfSelectorstoken(
 
 async function getTokenSpecs(
   signerAddress: string,
-  token: ethers.Contract
+  token: ethers.Contract,
+  votingContract?: ethers.Contract
 ): Promise<queryViewFunction<{
   name: string,
   symbol: string,
   decimals: ethers.BigNumber | undefined,
   balance: ethers.BigNumber
+  balanceBySelector?: {
+    start: ethers.BigNumber,
+    vote: ethers.BigNumber,
+    implement: ethers.BigNumber,
+    other: ethers.BigNumber,
+  }
 }>> {
 
-  let tokenSpecs: Array<{ result: any, message: string }> = await Promise.all(
-    [
-      getTokenName(token),
-      getTokenSymbol(token),
-      getTokenDecimals(token),
-      getTokenBalance(token, signerAddress)
-    ]
-  )
-  return {
-    result:
-    {
-      name: tokenSpecs[0].result.name,
-      symbol: tokenSpecs[1].result.symbol,
-      decimals: tokenSpecs[2].result.decimals,
-      balance: tokenSpecs[3].result.balance,
-    },
-    message: tokenSpecs.map(r => r.message).join("")
+  if (votingContract) {
+    let tokenSpecs: Array<{ result: any, message: string }> = await Promise.all(
+      [
+        getTokenName(token),
+        getTokenSymbol(token),
+        getTokenDecimals(token),
+        getTokenBalance(token, signerAddress),
+        getTokenBalanceOfSelectorstoken(token, votingContract.interface.getSighash("start"), votingContract.interface.getSighash("vote"), votingContract.interface.getSighash("implement"), signerAddress),
+      ]
+    )
+    return {
+      result:
+      {
+        name: tokenSpecs[0].result.name,
+        symbol: tokenSpecs[1].result.symbol,
+        decimals: tokenSpecs[2].result.decimals,
+        balance: tokenSpecs[3].result.balance,
+        balanceBySelector: {
+          ...tokenSpecs[4].result,
+          other: 4
+        },
+      },
+      message: tokenSpecs.map(r => r.message).join("")
+    }
+  } else {
+    let tokenSpecs: Array<{ result: any, message: string }> = await Promise.all(
+      [
+        getTokenName(token),
+        getTokenSymbol(token),
+        getTokenDecimals(token),
+        getTokenBalance(token, signerAddress),
+      ]
+    )
+    return {
+      result:
+      {
+        name: tokenSpecs[0].result.name,
+        symbol: tokenSpecs[1].result.symbol,
+        decimals: tokenSpecs[2].result.decimals,
+        balance: tokenSpecs[3].result.balance,
+      },
+      message: tokenSpecs.map(r => r.message).join("")
+    }
   }
+
 
 }
 
@@ -538,8 +584,7 @@ async function getTokenInfo(
     let tokenInterface = new ethers.Contract(tokenAddress, BADGE_TOKEN_INTERFACE, signer)
     let result = await Promise.all(
       [
-        getTokenSpecs(signerAddress, tokenInterface),
-        getTokenBalanceOfSelectorstoken(tokenInterface, votingContract.interface.getSighash("start"), votingContract.interface.getSighash("vote"), votingContract.interface.getSighash("implement"), signerAddress),
+        getTokenSpecs(signerAddress, tokenInterface, votingContract),
         getTokenERCInterfaces(tokenInterface)
       ]
     )
@@ -549,12 +594,13 @@ async function getTokenInfo(
       symbol: result[0].result.symbol,
       decimals: result[0].result.decimals,
       balance: result[0].result.balance,
-      balanceBySelector: result[1].result,
-      interfaces: result[2].result.interfaces
+      balanceBySelector: result[0].result.balanceBySelector,
+      interfaces: result[1].result.interfaces
     }
+    console.log('Tokennn', token)
 
     message += result.map(r => r.message).join("")
-  } catch (err) { message = 'No getToken method found!\n' + JSON.stringify(err) + '\n' }
+  } catch (err) { console.log(err); message = 'No getToken method found!\n' + JSON.stringify(err) + '\n' }
   return { result: { token: token }, message: message }
 }
 

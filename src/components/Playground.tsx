@@ -642,15 +642,7 @@ const getIntrospectPlayground: () => JSX.Element = () => {
     setPlaygroundFormInputValues(playgroundFormInputValuesTemp)
   }
 
-  const updateViewFunctions = (playgroundContract: ethers.Contract, viewFunctions: Array<Object>, whichOne: string) => {
-    // let playgroundFunctionsTemp = [...playgroundFunctions]
-    if (!library) return []
-    if (whichOne == "all") {
-      for (const segment in viewFunctions) {
-        playgroundContract[segment]
-      }
-    }
-  }
+
 
   const updateViewFunctionOutputs = async (event: any, whichFragment: string) => {
     let playgroundFormInputValuesTemp = { ...playgroundFormInputValues }
@@ -658,7 +650,23 @@ const getIntrospectPlayground: () => JSX.Element = () => {
       // do nothing yet
       let inputValues = playgroundFormInputValuesTemp[whichFragment].inputArgs.map((a) => { return a.value })
       let result = await playgroundFunctions.contract[whichFragment](...inputValues)
+      // let decodedFunctionResult = playgroundFunctions.contract.interface.decodeFunctionResult(whichFragment, result)
+      console.log('decodedFunctionResult TEst', result)
       playgroundFormInputValuesTemp[whichFragment].result = result
+      setPlaygroundFormInputValues(playgroundFormInputValuesTemp)
+    }
+    else {
+      let satisfyingFragments = Object.keys(playgroundFormInputValuesTemp).filter((fr) => playgroundFormInputValuesTemp[fr].satisifiedFormat)
+      let satisfyingFragmentsResults = await Promise.all(
+        satisfyingFragments.map((fr) => {
+          let inputValues = playgroundFormInputValuesTemp[fr].inputArgs.map((a) => { return a.value })
+          return playgroundFunctions.contract[fr](...inputValues)
+        })
+      )
+      satisfyingFragmentsResults.forEach((result, i) => {
+        playgroundFormInputValuesTemp[satisfyingFragments[i]].result = result
+      })
+      // console.log(satisfyingFragments)
       setPlaygroundFormInputValues(playgroundFormInputValuesTemp)
     }
     // TODO: Also do the other way around ("all")
@@ -690,7 +698,9 @@ const getIntrospectPlayground: () => JSX.Element = () => {
 
         </div>
         <div style={{ display: "inline-block", padding: "2px", width: "30%", textAlign: "right" }}>
-          <button style={{ width: "90%", margin: "2px" }} className="btn btn-primary" disabled={library === undefined}>
+          <button
+            onClick={(event) => updateViewFunctionOutputs(event, "all")}
+            style={{ width: "90%", margin: "2px" }} className="btn btn-primary" disabled={library === undefined}>
             {library ? "View all" : "Please connect!"}
           </button>
         </div>
@@ -727,7 +737,27 @@ const getIntrospectPlayground: () => JSX.Element = () => {
               width: "100%"
             }}>
               {Array.isArray(playgroundFormInputValues[f.name].result) ?
-                playgroundFormInputValues[f.name].result.map((ent: any, i: number) => { return (i == 0 ? "" : ", ") + ent.toString() }) :
+                Object.keys(playgroundFormInputValues[f.name].result)
+                  .filter((ent: any, i: number) => { return i >= playgroundFormInputValues[f.name].result.length })
+                  .map((ent: any, i: number) => {
+                    let outputResult = playgroundFormInputValues[f.name].result[ent]
+                    if (ent == "operation") {
+                      if (outputResult == 0) {
+                        outputResult = "addition"
+                      } else if (outputResult == 1) {
+                        outputResult = "subtraction"
+                      } else {
+                        outputResult = "multiplication"
+                      }
+                    } else {
+                      outputResult = outputResult.toString()
+                    }
+                    return (
+                      <>
+                        {`${ent}: ${outputResult}`}<br />
+                      </>
+                    )
+                  }) :
                 playgroundFormInputValues[f.name].result.toString()
               }
             </div>
@@ -768,7 +798,7 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
           At its heart the DAO has a <span style={linkStyle}>counter</span> variable that may be tampered with.
           The counter can be change via the function <span onClick={() => { }} style={linkStyle}>changeCounter(uint256 by)</span>.
           Initially this changes the counter by the addition of an amount 'by'. However, also the arithmetic operation that changes the counter is modifiable.
-          It can be set either to addition, subtraction, division, modulo or exponentiation via the function <span style={linkStyle}>changeOperation(Operation newOperation)</span>.
+          It can be set either to addition {"(Operation = 0)"}, subtraction {"(Operation = 1)"} or  multiplication {"(Operation = 2)"} via the function <span style={linkStyle}>changeOperation(Operation newOperation)</span>.
           {/* 
           Functions that can be triggered by anyone (1) are all the view functions and the addition of a new voting contract into the DAO's storage.
           Naturally, one may also deposit the native currency into the contract. This triggers the receive() function and the deposit gets recorded in the contract. */}

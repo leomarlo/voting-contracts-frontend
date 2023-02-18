@@ -349,11 +349,12 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
                   {
                     `${getBalance(tokenInfo.balance, tokenInfo.decimals)}` +
                     (tokenInfo.balanceBySelector ?
-                      ` (` +
+                      `     (` +
                       `start: ${tokenInfo.balanceBySelector?.start.toString()}, ` +
                       `vote: ${tokenInfo.balanceBySelector?.vote.toString()}, ` +
-                      `implement: ${tokenInfo.balanceBySelector?.implement.toString()})` :
-                      ""
+                      `implement: ${tokenInfo.balanceBySelector?.implement.toString()}, ` +
+                      `other: ${tokenInfo.balanceBySelector?.implement.toString()})` :
+                      ``
                     )}
                 </td>
               </tr>
@@ -383,6 +384,27 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
               {CalldataRows}
             </td>
           </tr>
+          {instance.internal.target.decoded !== undefined ?
+            <tr className="table-warning">
+              <th scope="col" style={{ verticalAlign: "top" }}>calldata decoded</th>
+              <td style={{ maxHeight: "30px", overflowY: "scroll" }}>
+                <table className="table table-warning" style={{ width: "100%" }}>
+                  <body>
+                    {
+                      instance.internal.target.decoded.map((entry) => {
+                        return (
+                          <tr>
+                            <th>{entry.name}</th>
+                            <td>{entry.value}</td>
+                          </tr>
+                        )
+                      })}
+                  </body>
+                </table>
+              </td>
+            </tr>
+            : <></>}
+
           <tr >
             <th scope="col" style={{ verticalAlign: "top" }}>Result</th>
             <td style={{ fontFamily: "monospace" }}>
