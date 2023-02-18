@@ -2,7 +2,7 @@
 import React, { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { useWeb3React } from "@web3-react/core"
 import { Web3Provider } from "@ethersproject/providers";
-
+import { bootstrapColors } from "../utils/bootstrap";
 import Select, { SingleValue } from 'react-select'
 
 const licenseOptions = [
@@ -32,6 +32,9 @@ type ContentMappingForContractCode = {
   [name in ContentKeys]: {
     rows: Array<{ text: string, info: string }>,
     variables: Array<{ text: string, info: string }>,
+    events: Array<{ text: string, info: string }>,
+    errors: Array<{ text: string, info: string }>,
+    functions: Array<{ text: string, info: string }>,
     visible: boolean
   }
 }
@@ -57,20 +60,19 @@ const createVotingContract: () => JSX.Element = () => {
     text: "",
     totalRows: 6,
     content: {
-      [ContentKeys.License]: { rows: [], variables: [], visible: false },
-      [ContentKeys.Pragma]: { rows: [], variables: [], visible: false },
-      [ContentKeys.Imports]: { rows: [], variables: [], visible: false },
-      [ContentKeys.Info]: { rows: [], variables: [], visible: false },
-      [ContentKeys.Name]: { rows: [], variables: [], visible: false },
-      [ContentKeys.EncodeDecode]: { rows: [], variables: [], visible: false },
-      [ContentKeys.Deadline]: { rows: [], variables: [], visible: false },
-      [ContentKeys.GetDeadline]: { rows: [], variables: [], visible: false },
-      [ContentKeys.SupportsInterface]: { rows: [], variables: [], visible: false }
+      [ContentKeys.License]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.Pragma]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.Imports]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.Info]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.Name]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.EncodeDecode]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.Deadline]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.GetDeadline]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
+      [ContentKeys.SupportsInterface]: { rows: [], variables: [], events: [], errors: [], functions: [], visible: false },
     },
     reverseLookup: {},
     allowEditing: false
   })
-  const [chooseFreestyleEntries, setChooseFreestyleEntries] = useState<boolean>(false)
   const [contractName, setContractName] = useState<string>("")
   const [votingParamOptions, setVotingParamOptions] = useState<VotingParamOptions>({})
 
@@ -80,7 +82,7 @@ const createVotingContract: () => JSX.Element = () => {
 
     let minLength = contractCodeTemp.text.split('\n').length + 1
     // make sure its at least 36 long
-    if (chooseFreestyleEntries == true) contractCodeTemp.totalRows = Math.max(36, minLength)
+    if (contractCode.allowEditing == true) contractCodeTemp.totalRows = Math.max(36, minLength)
     // Should be at least 6 long
     else contractCodeTemp.totalRows = Math.max(6, minLength)
 
@@ -97,9 +99,13 @@ const createVotingContract: () => JSX.Element = () => {
   }
 
   const handleChooseFreestyleEntries = (ev: any) => {
-    setChooseFreestyleEntries(ev.target.checked)
+
 
     let contractCodeTemp = { ...contractCode }
+
+    contractCodeTemp.allowEditing = ev.target.checked
+    let text = getTextFromContentRows(contractCodeTemp.content)
+    contractCodeTemp.text = text
     contractCodeTemp.totalRows = getTotalRows(contractCodeTemp.text, ev.target.checked)
 
     setContractCode(contractCodeTemp)
@@ -136,11 +142,14 @@ const createVotingContract: () => JSX.Element = () => {
         rows: ["// SPDX-License-Identifier: " + event.value, ""]
           .map(t => { return { text: t, info: "license" } }),
         variables: [],
+        events: [],
+        errors: [],
+        functions: [],
         visible: true
       }
       let text = getTextFromContentRows(contractCodeTemp.content)
       contractCodeTemp.text = text
-      contractCodeTemp.totalRows = getTotalRows(text, chooseFreestyleEntries)
+      contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
 
       setContractCode(contractCodeTemp)
     }
@@ -153,11 +162,14 @@ const createVotingContract: () => JSX.Element = () => {
         rows: [`pragma solidity ${event.value};`, ""]
           .map(t => { return { text: t, info: "pragma" } }),
         variables: [],
+        events: [],
+        errors: [],
+        functions: [],
         visible: true
       }
       let text = getTextFromContentRows(contractCodeTemp.content)
       contractCodeTemp.text = text
-      contractCodeTemp.totalRows = getTotalRows(text, chooseFreestyleEntries)
+      contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
       setContractCode(contractCodeTemp)
     }
   }
@@ -169,11 +181,14 @@ const createVotingContract: () => JSX.Element = () => {
       rows: [event.target.value]
         .map(t => { return { text: t, info: "name" } }),
       variables: [],
+      events: [],
+      errors: [],
+      functions: [],
       visible: true
     }
     let text = getTextFromContentRows(contractCodeTemp.content)
     contractCodeTemp.text = text
-    contractCodeTemp.totalRows = getTotalRows(text, chooseFreestyleEntries)
+    contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
     setContractCode(contractCodeTemp)
   }
 
@@ -191,6 +206,12 @@ const createVotingContract: () => JSX.Element = () => {
           rows: [`import { Deadline } from "@leomarlo/voting-registry-contracts/src/extensions/primitives/Deadline.sol";`]
             .map(t => { return { text: t, info: "deadline" } }),
           variables: [{ text: "mapping(uint256=>uint256) internal _deadline;", info: "deadline" }],
+          events: [],
+          errors: [
+            { text: "DeadlineHasPassed(uint256 identifier, uint256 deadline);", info: "deadline" },
+            { text: "DeadlineHasNotPassed(uint256 identifier, uint256 deadline);", info: "deadline" }
+          ],
+          functions: [],
           visible: true
         }
         contractCodeTemp.reverseLookup["deadline"] = [ContentKeys.Imports] // change to push
@@ -208,7 +229,7 @@ const createVotingContract: () => JSX.Element = () => {
 
       let text = getTextFromContentRows(contractCodeTemp.content)
       contractCodeTemp.text = text
-      contractCodeTemp.totalRows = getTotalRows(text, chooseFreestyleEntries)
+      contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
       setContractCode(contractCodeTemp)
 
 
@@ -229,17 +250,17 @@ const createVotingContract: () => JSX.Element = () => {
       <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
         <input
           type="checkbox"
-          checked={chooseFreestyleEntries}
+          checked={contractCode.allowEditing}
           value={"choooseFromPlaygroundSelectors"}
           id="choooseFromPlaygroundSelectors"
           onChange={(event) => handleChooseFreestyleEntries(event)} />
         <label style={{ paddingLeft: "10px" }}>
-          Write the code without a template
+          Write the code without a template <span style={{ color: bootstrapColors.danger }}>{contractCode.allowEditing ? "(You will loose your edited changes if you uncheck! Will be fixed in the next version!)" : ""}</span>
         </label>
       </div>
       <hr />
       <div style={{
-        display: (chooseFreestyleEntries ? "none" : "inline-block"),
+        display: (contractCode.allowEditing ? "none" : "inline-block"),
         width: "100%"
       }}>
         <div style={{
@@ -298,7 +319,7 @@ const createVotingContract: () => JSX.Element = () => {
           ></input>
         </div>
         <hr />
-        <h4>Voting Parameters</h4>
+        <h5>Voting Parameters</h5>
         <div style={{
           display: "block",
           width: "50%",
@@ -326,7 +347,7 @@ const createVotingContract: () => JSX.Element = () => {
             style={{ fontFamily: "monospace" }}
             cols={120}
             rows={contractCode.totalRows}
-            disabled={!(contractCode.allowEditing || chooseFreestyleEntries)}
+            disabled={!(contractCode.allowEditing)}
             id="calldata"
             value={contractCode.text}
             onChange={updateContractCode}>
@@ -338,7 +359,7 @@ const createVotingContract: () => JSX.Element = () => {
           className="col-12"
           style={{ padding: "5px", marginTop: "10px" }}
           key="VotingContractVariablesDiv">
-          <h6 style={{ margin: "5px", padding: "5px" }}>Available Variables</h6>
+          <h6 style={{ margin: "5px", padding: "5px" }}>Available Variables <span style={{ color: "red" }}>{(contractCode.allowEditing ? "\t(EDITING ENABLED. CANNOT TRACK VARIABLES!)" : "")}</span></h6>
           <div style={{ backgroundColor: "#ddd", margin: "5px", padding: "5px", borderStyle: "solid", borderWidth: "1px", borderColor: "#aaa" }}>
             {Object.keys(contractCode.content).map((key: any) => {
               return (
@@ -346,7 +367,7 @@ const createVotingContract: () => JSX.Element = () => {
                   {contractCode.content[key as ContentKeys].variables.map((v: { text: string, info: string }) => {
                     return (
                       <>
-                        {v.text + (contractCode.allowEditing ? "  (editing allowed. Cannot track variables!)" : "")}
+                        {v.text}
                         <br />
                       </>
                     )
