@@ -129,7 +129,7 @@ const VotingContractsComp: React.FC<VotingContractsArgs> = ({ detailsHandling }:
 
   const sectionContent: VotingContractSectionContents = {
     [VotingContractSections.VotingContractStandard]: VotingContractStandardElement,
-    [VotingContractSections.CreateVotingContract]: createVotingContract()
+    [VotingContractSections.CreateVotingContract]: createVotingContract({ detailsHandling: detailsHandling })
   }
 
   const [displaySection, setDisplaySection] = useState<VotingContractSectionFlags>(initialDisplaySection)

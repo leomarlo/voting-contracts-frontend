@@ -19,6 +19,7 @@ import {
 import { ethers } from 'ethers'
 import Select, { SingleValue } from 'react-select'
 import { bootstrapColors } from "../utils/bootstrap"
+import { closeDetails } from "./details/details";
 
 interface VotingParams {
   active: boolean,
@@ -135,11 +136,6 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
     getSimpleVotingContracts().then(setSimpleVotingChoices).catch(console.log)
   }, [chainId])
 
-
-  const closeDetails = (event: any) => {
-    detailsHandling.focusOnDetailsSetter(false)
-    detailsHandling.detailsSetter(<></>)
-  }
 
 
   // handle selector choices
@@ -482,7 +478,7 @@ const StartNewInstance: React.FC<StartNewInstanceArgs> = ({
         {/* {JSON.stringify(initialNewInstanceValues)} */}
         {/* {functionSelectorOptions.map((f) => { */}
         {/* {registeredVotingContracts.map((f) => { */}
-        <button onClick={(e) => closeDetails(e)} className="btn btn-success">Hide Details</button>
+        <button onClick={(e) => closeDetails(e, detailsHandling)} className="btn btn-success">Hide Details</button>
       </div>
       <hr />
       <div style={{ display: "inline-block", width: "100%", padding: "5px" }}>
