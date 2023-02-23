@@ -168,6 +168,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
     const deleteFromContractCode = (contractCodeTemp: ContractCode, whichOption: string) => {
       // delete the rows with deadline in them
+      if (!(whichOption in contractCodeTemp.reverseLookup)) return null
       for (let contentKey of contractCodeTemp.reverseLookup[whichOption]) {
         contractCodeTemp.content[contentKey].rows = contractCodeTemp.content[contentKey].rows.filter(r => {
           return r.info != whichOption
@@ -249,6 +250,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       // if no votingOptions Have been selected we will already set 
       // the bare bones contract or (if checked) the base contract  
       if (votingParamOptions.allDisabled) {
+        console.log('We ought to change the contractCode')
         updateBaseOrBareBoneStructure(contractCodeTemp, useBareBonesVotingContract, newContractName)
       }
 
@@ -352,8 +354,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
       if (bareBonesFlag) {
         // delete all the base template code first
-        // TODO:
-
+        deleteFromContractCode(contractCodeTemp, "baseTemplate")
 
         // add the bare bones contract
         contractCodeTemp.content[ContentKeys.Imports] = {
@@ -416,7 +417,71 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           ContentKeys.Start,
           ContentKeys.Vote] // change to push
       } else {
+        // First of all delete all the bare bones template
         deleteFromContractCode(contractCodeTemp, "bareBones")
+
+        // now add the Base template "baseTemplate"
+
+        // add the bare bones contract
+        contractCodeTemp.content[ContentKeys.Imports] = {
+          rows: [
+            `import { IVotingContract } from "@leomarlo/voting-registry-contracts/src/votingContractStandard/IVotingContract.sol";`,
+            `import { BaseVotingContract } from "@leomarlo/voting-registry-contracts/src/extensions/abstracts/BaseVotingContract.sol";`
+          ]
+            .map(t => { return { text: t, info: "baseTemplate" } }),
+          visible: true
+        }
+        contractCodeTemp.content[ContentKeys.Dependencies] = {
+          rows: [`BaseVotingContract`]
+            .map(t => { return { text: t, info: "baseTemplate" } }),
+          visible: true
+        }
+
+        // Whenever you update the dependencies, you MUST also update the name
+        updateNameContractCode(contractCodeTemp, contractNameTemp)
+
+        contractCodeTemp.content[ContentKeys.Start] = {
+          rows: [
+            ``,
+            `/// @notice We must implement a start function. `,
+            `/// @dev This handles the emission of a voting instance created event`,
+            `/// @dev It also handles the increment of the identifier. `,
+            `function _start(uint256 identifier, bytes memory votingParams, bytes calldata callback)`,
+            `internal`,
+            `override(BaseVotingContract)`,
+            `{`,
+            ``,
+            `    // your code goes here`,
+            ``,
+            `}`,
+            ``
+          ].map(t => { return { text: t, info: "baseTemplate" } }),
+          visible: true
+        }
+        contractCodeTemp.content[ContentKeys.Vote] = {
+          rows: [
+            `/// @dev We must implement a vote function `,
+            `function vote(uint256 identifier, bytes calldata votingData) `,
+            `external `,
+            `override(BaseVotingContract)`,
+            `returns (uint256)`,
+            `{`,
+            `{`,
+            ``,
+            `    // your code goes here`,
+            ``,
+            `}`,
+            ``
+          ].map(t => { return { text: t, info: "baseTemplate" } }),
+          visible: true
+        }
+        contractCodeTemp.reverseLookup["baseTemplate"] = [
+          ContentKeys.Imports,
+          ContentKeys.Dependencies,
+          ContentKeys.Name,
+          ContentKeys.Start,
+          ContentKeys.Vote] // change to push
+
       }
     }
 
