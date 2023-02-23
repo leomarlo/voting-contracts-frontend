@@ -101,7 +101,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     const [contractName, setContractName] = useState<string>("")
     const [votingParamOptions, setVotingParamOptions] = useState<VotingParamOptions>({ options: {}, allDisabled: true })
     const [functionInspection, setFunctionInspection] = useState<{ option?: string, function?: string }>({})
-    const [useBareBonesVotingContract, setUseBareBonesVotingContract] = useState<boolean>(false)
+    const [useBareBonesVotingContract, setUseBareBonesVotingContract] = useState<boolean>(true)
 
     const updateContractCode = (ev: any) => {
       let contractCodeTemp = { ...contractCode }
@@ -166,13 +166,18 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
     }
 
-    const deleteFromContractCode = (contractCode: ContractCode, whichOption: string) => {
+    const deleteFromContractCode = (contractCodeTemp: ContractCode, whichOption: string) => {
       // delete the rows with deadline in them
-      for (let contentKey of contractCode.reverseLookup[whichOption]) {
-        contractCode.content[contentKey].rows = contractCode.content[contentKey].rows.filter(r => {
+      for (let contentKey of contractCodeTemp.reverseLookup[whichOption]) {
+        contractCodeTemp.content[contentKey].rows = contractCodeTemp.content[contentKey].rows.filter(r => {
           return r.info != whichOption
         })
-        contractCode.content[contentKey].visible = contractCode.content[contentKey].rows.length > 0
+        // change visibility if needed
+        contractCodeTemp.content[contentKey].visible = contractCodeTemp.content[contentKey].rows.length > 0
+        // run Name field (beginning of contract) if needed
+        if (contentKey == ContentKeys.Dependencies) {
+          updateNameContractCode(contractCodeTemp, contractName)
+        }
       }
 
       // delete the deadline variables, errors, events, functions and modifiers
@@ -233,12 +238,19 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     }
 
     const handleContractNameChange = (event: any) => {
-      setContractName(event.target.value)
+      if (event.target.value.match(/[\! || \" || \% || \$ || \^ || \? || \= || \& || \{ || \} || \) || \( || \[ || \] || \§ || \\ || \/ || \- || \* || \+ || \~ || \# || \')]/)) return null
+      let newContractName = event.target.value.replace(' ', '_')
 
+      setContractName(newContractName)
 
       let contractCodeTemp = { ...contractCode }
-      updateNameContractCode(contractCodeTemp, event.target.value)
+      updateNameContractCode(contractCodeTemp, newContractName)
 
+      // if no votingOptions Have been selected we will already set 
+      // the bare bones contract or (if checked) the base contract  
+      if (votingParamOptions.allDisabled) {
+        updateBaseOrBareBoneStructure(contractCodeTemp, useBareBonesVotingContract, newContractName)
+      }
 
       let text = getTextFromContentRows(contractCodeTemp.content)
       contractCodeTemp.text = text
@@ -332,13 +344,13 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       setFunctionInspection(tempFunctionInspection)
     }
 
-    const handleBareBonesVotingContracts = (event: any) => {
-      // set the boolean variable
-      setUseBareBonesVotingContract(event.target.checked ? true : false)
 
-      // depending on whether its checked or not add the template from bare bones or from contract with hooks
-      let contractCodeTemp = { ...contractCode }
-      if (event.target.checked) {
+    const updateBaseOrBareBoneStructure = (
+      contractCodeTemp: ContractCode,
+      bareBonesFlag: boolean,
+      contractNameTemp: string) => {
+
+      if (bareBonesFlag) {
         // delete all the base template code first
         // TODO:
 
@@ -355,7 +367,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           visible: true
         }
         // Whenever you update the dependencies, you MUST also update the name
-        updateNameContractCode(contractCodeTemp, contractName)
+        updateNameContractCode(contractCodeTemp, contractNameTemp)
 
         contractCodeTemp.content[ContentKeys.Start] = {
           rows: [
@@ -406,6 +418,16 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       } else {
         deleteFromContractCode(contractCodeTemp, "bareBones")
       }
+    }
+
+
+    const handleBareBonesVotingContracts = (bareBonesFlag: any) => {
+      // set the boolean variable
+      setUseBareBonesVotingContract(bareBonesFlag ? true : false)
+
+      // depending on whether its checked or not add the template from bare bones or from contract with hooks
+      let contractCodeTemp = { ...contractCode }
+      updateBaseOrBareBoneStructure(contractCodeTemp, bareBonesFlag, contractName)
 
       // set the new contract code
       let text = getTextFromContentRows(contractCodeTemp.content)
@@ -505,7 +527,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
               value={"useBareBones"}
               id="useBareBones"
               disabled={!votingParamOptions.allDisabled}
-              onChange={(event) => handleBareBonesVotingContracts(event)} />
+              onChange={(event) => handleBareBonesVotingContracts(event.target.checked)} />
             <label style={{ paddingLeft: "10px" }}>
               <div style={{ display: "inline", color: (!votingParamOptions.allDisabled ? "gray" : "black") }}>
                 Use bare bones Voting Contract template
