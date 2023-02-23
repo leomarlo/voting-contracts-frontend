@@ -24,6 +24,7 @@ enum ContentKeys {
   Imports,
   Info,
   Name,
+  Dependencies,
   Constructor,
   EncodeDecodeVotingParams,
   Start,
@@ -80,6 +81,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         [ContentKeys.Imports]: { rows: [], visible: false },
         [ContentKeys.Info]: { rows: [], visible: false },
         [ContentKeys.Name]: { rows: [], visible: false },
+        [ContentKeys.Dependencies]: { rows: [], visible: false },
         [ContentKeys.Constructor]: { rows: [], visible: false },
         [ContentKeys.EncodeDecodeVotingParams]: { rows: [], visible: false },
         [ContentKeys.Start]: { rows: [], visible: false },
@@ -114,6 +116,32 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       setContractCode(contractCodeTemp)
     }
 
+    const updateNameContractCode = (contractCodeTemp: ContractCode, name: string) => {
+      if (name != "") {
+        let rows = []
+        if (contractCodeTemp.content[ContentKeys.Dependencies].rows.length > 0) {
+          rows.push({ text: `contract ${name} is`, info: "name" })
+          rows = rows.concat(contractCodeTemp.content[ContentKeys.Dependencies].rows)
+          rows.push({ text: `{`, info: "name" })
+        } else {
+          rows.push({ text: `contract ${name} {`, info: "name" })
+        }
+        contractCodeTemp.content[ContentKeys.Name] = {
+          rows: rows,
+          visible: true
+        }
+        // reverseResolution
+        contractCodeTemp.reverseLookup["name"] = [ContentKeys.Name]
+      } else {
+        // The following would delete all rows with name in it:
+        // deleteFromContractCode(contractCodeTemp, "name")
+        // But we would like to delete all rows of the Name content key
+        contractCodeTemp.content[ContentKeys.Name].rows = []
+        contractCodeTemp.content[ContentKeys.Name].visible = false
+
+      }
+    }
+
     const getTotalRows = (text: string, freestyle: boolean) => {
       let minLength = text.split('\n').length + 1
       // make sure its at least 36 long
@@ -144,7 +172,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         contractCode.content[contentKey].rows = contractCode.content[contentKey].rows.filter(r => {
           return r.info != whichOption
         })
-        contractCode.content[contentKey].visible = false
+        contractCode.content[contentKey].visible = contractCode.content[contentKey].rows.length > 0
       }
 
       // delete the deadline variables, errors, events, functions and modifiers
@@ -156,22 +184,19 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     }
 
     const getTextFromContentRows: ((content: ContentMappingForContractCode) => string) = (content) => {
-      let dependencies = []
-      let hasDependencies = dependencies.length > 0 ? "is" : "{"
-
-      let end = "\n}"
 
       let text = Object.keys(content).map((c: any) => {
-        if (content[c as ContentKeys].visible) {
-          if (c == ContentKeys.Name) {
-            return `contract ${content[ContentKeys.Name].rows[0].text} ${hasDependencies}\n\n`
-          }
-          return content[c as ContentKeys].rows.map(r => r.text).join('\n') + "\n\n"
-        }
-        return ""
-      }).join("") + (content[ContentKeys.Name].visible ? end : "");
-
-      // let text = "hallo"
+        let isViz: boolean = content[c as ContentKeys].visible
+        let isADependency: boolean = c == ContentKeys.Dependencies
+        let isNotIndented: boolean = (c in [
+          ContentKeys.License,
+          ContentKeys.Pragma,
+          ContentKeys.Imports,
+          ContentKeys.Info,
+          ContentKeys.Name])
+        let indentation: string = (isNotIndented ? "" : "    ")
+        return ((!isViz || isADependency) ? indentation : content[c as ContentKeys].rows.map(r => (indentation + r.text)).join('\n') + "\n\n")
+      }).join("") + (content[ContentKeys.Name].visible ? "\n}\n" : "");
       return text
     }
 
@@ -209,12 +234,12 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
     const handleContractNameChange = (event: any) => {
       setContractName(event.target.value)
+
+
       let contractCodeTemp = { ...contractCode }
-      contractCodeTemp.content[ContentKeys.Name] = {
-        rows: [event.target.value]
-          .map(t => { return { text: t, info: "name" } }),
-        visible: true
-      }
+      updateNameContractCode(contractCodeTemp, event.target.value)
+
+
       let text = getTextFromContentRows(contractCodeTemp.content)
       contractCodeTemp.text = text
       contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
@@ -238,6 +263,13 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
               .map(t => { return { text: t, info: "deadline" } }),
             visible: true
           }
+          contractCodeTemp.content[ContentKeys.Dependencies] = {
+            rows: [`Deadline`].map(t => { return { text: t, info: "deadline" } }),
+            visible: true
+          }
+          // Whenever you update the dependencies, you MUST also update the name
+          updateNameContractCode(contractCodeTemp, contractName)
+
           contractCodeTemp.variables["deadline"] = ["mapping(uint256=>uint256) internal _deadline;"]
           contractCodeTemp.errors["deadline"] = [
             "DeadlineHasPassed(uint256 identifier, uint256 deadline);",
@@ -260,7 +292,10 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
               ]
             }
           ]
-          contractCodeTemp.reverseLookup["deadline"] = [ContentKeys.Imports] // change to push
+          contractCodeTemp.reverseLookup["deadline"] = [
+            ContentKeys.Imports,
+            ContentKeys.Dependencies,
+            ContentKeys.Name] // change to push
         } else {
           deleteFromContractCode(contractCodeTemp, "deadline")
         }
@@ -310,12 +345,21 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
         // add the bare bones contract
         contractCodeTemp.content[ContentKeys.Imports] = {
-          rows: [`import { IVotingContract } from "@leomarlo/voting-registry-contracts/src/votingContractStandard.sol";`]
+          rows: [`import { IVotingContract } from "@leomarlo/voting-registry-contracts/src/votingContractStandard/IVotingContract.sol";`]
             .map(t => { return { text: t, info: "bareBones" } }),
           visible: true
         }
+        contractCodeTemp.content[ContentKeys.Dependencies] = {
+          rows: [`IVotingContract`]
+            .map(t => { return { text: t, info: "bareBones" } }),
+          visible: true
+        }
+        // Whenever you update the dependencies, you MUST also update the name
+        updateNameContractCode(contractCodeTemp, contractName)
+
         contractCodeTemp.content[ContentKeys.Start] = {
           rows: [
+            ``,
             `/// @dev starts a new voting instance.`,
             `/// @param votingParams byte-encoded parameters that configure the voting instance`,
             `/// @param callback calldata that gets executed when the motion passes`,
@@ -353,7 +397,12 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           visible: true
         }
 
-        contractCodeTemp.reverseLookup["bareBones"] = [ContentKeys.Start, ContentKeys.Vote] // change to push
+        contractCodeTemp.reverseLookup["bareBones"] = [
+          ContentKeys.Imports,
+          ContentKeys.Dependencies,
+          ContentKeys.Name,
+          ContentKeys.Start,
+          ContentKeys.Vote] // change to push
       } else {
         deleteFromContractCode(contractCodeTemp, "bareBones")
       }
