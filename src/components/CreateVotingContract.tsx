@@ -34,15 +34,49 @@ enum ContentKeys {
   SupportsInterface,
 }
 
+const votingContractDependencies = [
+  "IERC165",
+  "IVotingContract",
+  "CallbackHashPrimitive",
+  "TargetGetter",
+  "StatusGetter",
+  "CheckCalldataValidity",
+  "TokenPrimitive",
+  "NoDoubleVoting",
+  "IGetDoubleVotingGuard",
+  "IGetToken",
+  "HandleDoubleVotingGuard",
+  "CastYesNoAbstainVote",
+  "IGetDeadline",
+  "Deadline",
+  "IGetQuorum",
+  "QuorumPrimitive",
+  "ImplementingPermitted",
+  "BaseVotingContract",
+  "ExpectReturnValue",
+  "HandleImplementationResponse",
+  "ImplementResult"
+]
+
+const possibleVotingParams = [
+  "deadline",
+  "quorum",
+  "token",
+  "expectReturnValue",
+  "doubleVotingGuard"]
+
+
 interface VotingContractsArgs {
   detailsHandling: DetailsHandling
 }
 
+type ContentValues = {
+  rows: Array<{ text: string, info: string }>
+  visible: boolean
+}
+
 type ContentMappingForContractCode = {
-  [name in ContentKeys]: {
-    rows: Array<{ text: string, info: string }>
-    visible: boolean
-  }
+  [name in ContentKeys]: ContentValues
 }
 
 interface ContractCode {
@@ -63,6 +97,8 @@ interface VotingParamOptions {
     deadline?: boolean,
     quorum?: boolean,
     doubleVotingGuard?: boolean,
+    token?: boolean,
+    expectReturnValue?: boolean,
     bareBonesImplement?: boolean
   }
   allDisabled: boolean
@@ -169,12 +205,16 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     const deleteFromContractCode = (contractCodeTemp: ContractCode, whichOption: string) => {
       // delete the rows with deadline in them
       if (!(whichOption in contractCodeTemp.reverseLookup)) return null
+      console.log('Inside delteFromContractCode')
       for (let contentKey of contractCodeTemp.reverseLookup[whichOption]) {
         contractCodeTemp.content[contentKey].rows = contractCodeTemp.content[contentKey].rows.filter(r => {
           return r.info != whichOption
         })
         // change visibility if needed
-        contractCodeTemp.content[contentKey].visible = contractCodeTemp.content[contentKey].rows.length > 0
+        let visible: boolean = (contractCodeTemp.content[contentKey].rows.length == 0 ?
+          false :
+          contractCodeTemp.content[contentKey].visible)
+        contractCodeTemp.content[contentKey].visible = visible
         // run Name field (beginning of contract) if needed
         if (contentKey == ContentKeys.Dependencies) {
           updateNameContractCode(contractCodeTemp, contractName)
@@ -188,6 +228,102 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       contractCode.functions[whichOption] = []
       contractCode.modifiers[whichOption] = []
     }
+
+    const updateDependencies = (dependencies: ContentValues, newDependency: { text: string, info: string }) => {
+
+      // makes sure that there are no conflicts in the inheritance graph
+      let newDependencies: ContentValues = { rows: [], visible: true }
+      let currentDependencies: Array<string> = dependencies.rows.map((d) => d.text)
+      let currentDependenciesMapping: { [dep: string]: number } = {}
+      for (let j = 0; j < currentDependencies.length; j++) {
+        currentDependenciesMapping[currentDependencies[j]] = j
+      }
+
+      console.log(currentDependencies)
+
+      for (let dep of votingContractDependencies) {
+        if (currentDependencies.includes(dep)) {
+          let i = currentDependenciesMapping[dep]
+          newDependencies.rows.push({ ...dependencies.rows[i] })
+        } else if (dep == newDependency.text) {
+          newDependencies.rows.push({ ...newDependency })
+        }
+      }
+
+      newDependencies.visible = (newDependencies.rows.length > 0)
+
+      return newDependencies
+
+    }
+
+
+    // start
+    const addVotingParams = (contractCodeTemp: ContractCode, whichOption: string) => {
+
+      // check whether Encoding is enabled.
+      if (contractCodeTemp.content[ContentKeys.EncodeDecodeVotingParams].visible) {
+        // TODO::
+
+        return [ContentKeys.Start, ContentKeys.EncodeDecodeVotingParams]
+      } else {
+        // check whether decode already exists
+        let decodeExistsRegex = /abi.decode/
+        let decodeLines: Array<number> = []
+        contractCodeTemp.content[ContentKeys.Start].rows.forEach((row, index) => {
+          if (row.text.match(decodeExistsRegex)) decodeLines.push(index)
+        })
+
+
+        if (decodeLines.length > 0) {
+          // if it exists insert duration option just before
+          let newArray = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, decodeLines[0]).concat(
+            (whichOption == "deadline" ? [{ text: "     duration,", info: "deadline" }] : [{ text: whichOption, info: whichOption }]),
+            contractCodeTemp.content[ContentKeys.Start].rows.slice(decodeLines[0],))
+          contractCodeTemp.content[ContentKeys.Start].rows = newArray
+        } else {
+          // if it doesnt exist create a new abi.encode
+          let indexBlockBegins = 0;
+          let indexBlockEnds = 0;
+          for (let k = 0; k < contractCodeTemp.content[ContentKeys.Start].rows.length; k++) {
+            let row = contractCodeTemp.content[ContentKeys.Start].rows[k]
+            if (row.text.match(/\{/)) indexBlockBegins = k
+            if (row.text.match(/\}/)) indexBlockEnds = k
+          }
+          // new decoding Lines
+          let decodingLines = [
+            { text: "    uint256 duration;", info: "deadline" },
+            { text: "    ", info: "decode" },
+            { text: "    (", info: "decode" },
+            { text: "     duration", info: "deadline" },
+            { text: "    ) = abi.decode(votingParams, (uint256));", info: "decode" }
+          ]
+          let newRows = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockBegins + 1).concat(
+            decodingLines,
+            contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockBegins + 1,))
+          contractCodeTemp.content[ContentKeys.Start].rows = newRows
+
+          // set the deadline
+          let newDeadlineSetter = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockEnds + decodingLines.length - 1).concat(
+            [
+              { text: "    ", info: "deadline" },
+              { text: "    _setDeadline(identifier, duration);", info: "deadline" },
+            ],
+            contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockEnds + decodingLines.length - 1,))
+          contractCodeTemp.content[ContentKeys.Start].rows = newDeadlineSetter
+
+        }
+
+        return [ContentKeys.Start]
+
+      }
+      // If Encoding is not enabled
+
+
+    }
+
+
+
+
 
     const getTextFromContentRows: ((content: ContentMappingForContractCode) => string) = (content) => {
 
@@ -250,7 +386,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       // if no votingOptions Have been selected we will already set 
       // the bare bones contract or (if checked) the base contract  
       if (votingParamOptions.allDisabled) {
-        console.log('We ought to change the contractCode')
         updateBaseOrBareBoneStructure(contractCodeTemp, useBareBonesVotingContract, newContractName)
       }
 
@@ -272,18 +407,24 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         let contractCodeTemp = { ...contractCode }
         if (event.target.checked) {
           // add the content whereever it is needed
+          let newImportRows = contractCodeTemp.content[ContentKeys.Imports].rows.concat(
+            [`import { Deadline } from "@leomarlo/voting-registry-contracts/src/extensions/primitives/Deadline.sol";`]
+              .map(t => { return { text: t, info: "deadline" } })
+          )
           contractCodeTemp.content[ContentKeys.Imports] = {
-            rows: [`import { Deadline } from "@leomarlo/voting-registry-contracts/src/extensions/primitives/Deadline.sol";`]
-              .map(t => { return { text: t, info: "deadline" } }),
+            rows: newImportRows,
             visible: true
           }
-          contractCodeTemp.content[ContentKeys.Dependencies] = {
-            rows: [`Deadline`].map(t => { return { text: t, info: "deadline" } }),
-            visible: true
-          }
+          contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "Deadline", info: "deadline" })
           // Whenever you update the dependencies, you MUST also update the name
           updateNameContractCode(contractCodeTemp, contractName)
 
+          // start
+          let encodingContentKeys = addVotingParams(contractCodeTemp, "deadline")
+
+          // variables and all that
           contractCodeTemp.variables["deadline"] = ["mapping(uint256=>uint256) internal _deadline;"]
           contractCodeTemp.errors["deadline"] = [
             "DeadlineHasPassed(uint256 identifier, uint256 deadline);",
@@ -309,9 +450,12 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           contractCodeTemp.reverseLookup["deadline"] = [
             ContentKeys.Imports,
             ContentKeys.Dependencies,
-            ContentKeys.Name] // change to push
+            ContentKeys.Name
+          ].concat(encodingContentKeys)
         } else {
+          // console.log('Halloo')
           deleteFromContractCode(contractCodeTemp, "deadline")
+          // TODO: More careful here (re abi and decoding)
         }
 
         let text = getTextFromContentRows(contractCodeTemp.content)
@@ -362,11 +506,11 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             .map(t => { return { text: t, info: "bareBones" } }),
           visible: true
         }
-        contractCodeTemp.content[ContentKeys.Dependencies] = {
-          rows: [`IVotingContract`]
-            .map(t => { return { text: t, info: "bareBones" } }),
-          visible: true
-        }
+        contractCodeTemp.content[ContentKeys.Dependencies] =
+          updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "IVotingContract", info: "bareBones" })
+
         // Whenever you update the dependencies, you MUST also update the name
         updateNameContractCode(contractCodeTemp, contractNameTemp)
 
@@ -381,8 +525,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             `public`,
             `override(IVotingContract)`,
             `returns(uint256 identifier) {`,
-            ``,
-            `    // your code goes here`,
             ``,
             `}`,
             ``
@@ -400,8 +542,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             `public `,
             `override(IVotingContract) `,
             `returns (uint256 status) {`,
-            ``,
-            `    // your code goes here`,
             ``,
             `}`,
             ``
@@ -431,11 +571,9 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             .map(t => { return { text: t, info: "baseTemplate" } }),
           visible: true
         }
-        contractCodeTemp.content[ContentKeys.Dependencies] = {
-          rows: [`BaseVotingContract`]
-            .map(t => { return { text: t, info: "baseTemplate" } }),
-          visible: true
-        }
+        contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+          contractCodeTemp.content[ContentKeys.Dependencies],
+          { text: "BaseVotingContract", info: "baseTemplate" })
 
         // Whenever you update the dependencies, you MUST also update the name
         updateNameContractCode(contractCodeTemp, contractNameTemp)
@@ -451,8 +589,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             `override(BaseVotingContract)`,
             `{`,
             ``,
-            `    // your code goes here`,
-            ``,
             `}`,
             ``
           ].map(t => { return { text: t, info: "baseTemplate" } }),
@@ -466,9 +602,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             `override(BaseVotingContract)`,
             `returns (uint256)`,
             `{`,
-            `{`,
-            ``,
-            `    // your code goes here`,
             ``,
             `}`,
             ``
