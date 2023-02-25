@@ -595,7 +595,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
           /abi.decode/)
         let indexAbiDecodeBeginsInStart = checkWhetherAndWhereRegexAppears(
-          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+          contractCodeTemp.content[ContentKeys.Start].rows,
           /decodeParameters/)
         if (indexAbiDecodeBeginsInDecode !== null && indexAbiDecodeBeginsInStart !== null) {
           let text = contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows[indexAbiDecodeBeginsInDecode[0]].text
