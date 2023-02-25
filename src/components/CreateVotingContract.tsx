@@ -286,13 +286,21 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     }
 
     // start
-    const addVotingParams = (contractCodeTemp: ContractCode, whichOption: string) => {
+    const addVotingParams = (contractCodeTemp: ContractCode, votingParamOptionsTemp: VotingParamOptions, whichOption: string) => {
 
       let contentKeysWhereOptionIsPresent: Array<ContentKeys> = []
       let variableName = (whichOption == "deadline" ? "duration" : whichOption)
       let variableType = "uint256"
       // TODO: change variable Types depending on whichOption
-      if (whichOption == "deadline") variableType = "uint256"
+      if (whichOption == "deadline") { variableType = "uint256" }
+
+      // insert comma after argument, when its the first one
+      let firstOption = possibleVotingParams.every((v) => {
+        let optionTicked: boolean = votingParamOptionsTemp.options[v as keyof typeof votingParamOptionsTemp.options] ? true : false
+        return (v == whichOption || !optionTicked)
+      })
+      let CommaAfterArgument = firstOption ? "" : ","
+
 
 
       // a flag that is enabled when the encoding functionality is enabled
@@ -330,7 +338,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         // if it exists insert option as the first one with a comma
         contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
           contractCodeTemp.content[ContentKeys.Start].rows,
-          [{ text: `     ${variableName},`, info: whichOption }],
+          [{ text: `     ${variableName}${CommaAfterArgument}`, info: whichOption }],
           abidecodeBeginsIndex + 1
         )
 
@@ -356,7 +364,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           ]
           decodingLines.push({
             text: `    ) =  ${decodeFunctionName}(votingParams` +
-              (encodeDecodeOfVotingExists ? ");" : ", (uint256));"),
+              (encodeDecodeOfVotingExists ? ");" : `, (${variableType}));`),
             info: "decode"
           })
 
@@ -411,13 +419,13 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         let indexShiftDecode = 0;
 
         if (indexReturnBegins !== null) {
-          let newLines = [{ text: `    ${variableType} ${variableName},`, info: whichOption }]
+          let newLines = [{ text: `    ${variableType} ${variableName}${CommaAfterArgument}`, info: whichOption }]
           contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows = insertContentIntoRows(
             contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
             newLines,
             indexReturnBegins[0] + 1
           )
-          indexShiftDecode = newLines.length
+          indexShiftDecode += newLines.length
         }
 
         // PART II
@@ -436,19 +444,22 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           // if it exists insert option as the first one with a comma
           contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows = insertContentIntoRows(
             contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
-            [{ text: `         ${variableName},`, info: whichOption }],
+            [{ text: `         ${variableName}${CommaAfterArgument}`, info: whichOption }],
             indexStartDecodeParanthesesBegin + indexShiftDecode + 1
           )
+          indexShiftDecode += 1
 
           // also modify the abi.decode statement if necessary
           let beginningOfDecodeString: string = "abi.decode(votingParams, ("
+          let newText = contractCodeTemp.content[ContentKeys.DecodeVotingParams]
+            .rows[indexAbiDecodeBegins[0] + indexShiftDecode]
+            .text.replace(
+              beginningOfDecodeString,
+              beginningOfDecodeString + `${variableType}${CommaAfterArgument} `)
+          console.log("NEWEW", newText)
           contractCodeTemp.content[ContentKeys.DecodeVotingParams]
             .rows[indexAbiDecodeBegins[0] + indexShiftDecode]
-            .text = contractCodeTemp.content[ContentKeys.DecodeVotingParams]
-              .rows[indexAbiDecodeBegins[0] + indexShiftDecode]
-              .text.replace(
-                beginningOfDecodeString,
-                beginningOfDecodeString + `${variableType}, `)
+            .text = newText
 
 
         }
@@ -471,7 +482,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
         // add the variable to encode parameters
         if (indexEncodeFunctionBegins !== null) {
-          let addedLines = [{ text: `    ${variableType} ${variableName},`, info: whichOption }]
+          let addedLines = [{ text: `    ${variableType} ${variableName}${CommaAfterArgument}`, info: whichOption }]
           contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows = insertContentIntoRows(
             contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows,
             addedLines,
@@ -486,7 +497,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         if (indexEncodeCallBegins !== null) {
           contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows = insertContentIntoRows(
             contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows,
-            [{ text: `        ${variableName},`, info: whichOption }],
+            [{ text: `        ${variableName}${CommaAfterArgument}`, info: whichOption }],
             indexEncodeCallBegins[0] + indexShiftEncode + 1
           )
         }
@@ -568,7 +579,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           console.log(votingParam)
           if (votingParamOptions.options[votingParam as keyof typeof votingParamOptions.options]) {
             console.log(`${votingParam} is ticked!`)
-            addVotingParams(contractCodeTemp, votingParam)
+            addVotingParams(contractCodeTemp, votingParamOptionsTemp, votingParam)
           }
         }
 
@@ -718,7 +729,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           updateNameContractCode(contractCodeTemp, contractName)
 
           // start
-          let encodingContentKeys = addVotingParams(contractCodeTemp, "deadline")
+          let encodingContentKeys = addVotingParams(contractCodeTemp, votingParamOptionsTemp, "deadline")
 
           // variables and all that
           contractCodeTemp.variables["deadline"] = ["mapping(uint256=>uint256) internal _deadline;"]
