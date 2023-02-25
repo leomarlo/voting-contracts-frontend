@@ -257,69 +257,103 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     }
 
 
+    function insertContentIntoRows(rows: Array<{ text: string, info: string }>, insertedRows: Array<{ text: string, info: string }>, rowIndex: number): Array<{ text: string, info: string }> {
+      return rows.slice(0, rowIndex).concat(insertedRows, rows.slice(rowIndex,))
+    }
+
+
+    function checkWhetherAndWhereRegexAppears(rows: Array<{ text: string, info: string }>, regex: RegExp): (number | null) {
+      let lines: Array<number> = []
+      rows.forEach((row, index) => { if (row.text.match(regex)) lines.push(index) })
+      if (lines.length > 0) return lines[0]
+      return null
+    }
+
+
     // start
     const addVotingParams = (contractCodeTemp: ContractCode, whichOption: string) => {
 
-      // check whether Encoding is enabled.
-      if (contractCodeTemp.content[ContentKeys.EncodeDecodeVotingParams].visible) {
-        // TODO::
+      let contentKeysWhereOptionIsPresent: Array<ContentKeys> = []
+      let variableName = (whichOption == "deadline" ? "duration" : whichOption)
+      let variableType = "uint256"
+      // TODO: change variable Types depending on whichOption
+      if (whichOption == "deadline") {
+        variableType = "uint256"
+      }
 
-        return [ContentKeys.Start, ContentKeys.EncodeDecodeVotingParams]
+      // a flag that is enabled when the encoding functionality is enabled
+      let encodeDecodeOfVotingExists: boolean = contractCodeTemp.content[ContentKeys.EncodeDecodeVotingParams].visible
+      let decodeFunctionName: string = (encodeDecodeOfVotingExists ? "decodeParameters" : "abi.decode")
+      // check whether decoding already exists in the start function
+      let abidecodeindex = checkWhetherAndWhereRegexAppears(
+        contractCodeTemp.content[ContentKeys.Start].rows,
+        new RegExp(decodeFunctionName))
+
+
+      if (abidecodeindex !== null) {
+
+        contentKeysWhereOptionIsPresent.push(ContentKeys.Start)
+
+        // if it exists insert duration option just before
+        contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
+          contractCodeTemp.content[ContentKeys.Start].rows,
+          [{ text: `     ${variableName},`, info: whichOption }],
+          abidecodeindex
+        )
+
       } else {
-        // check whether decode already exists
-        let decodeExistsRegex = /abi.decode/
-        let decodeLines: Array<number> = []
-        contractCodeTemp.content[ContentKeys.Start].rows.forEach((row, index) => {
-          if (row.text.match(decodeExistsRegex)) decodeLines.push(index)
-        })
+        // if it doesnt exist create a new abi.encode
+        let indexBlockBegins = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.Start].rows,
+          /\{/)
 
+        let indexBlockEnds = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.Start].rows,
+          /\}/);
 
-        if (decodeLines.length > 0) {
-          // if it exists insert duration option just before
-          let newArray = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, decodeLines[0]).concat(
-            (whichOption == "deadline" ? [{ text: "     duration,", info: "deadline" }] : [{ text: whichOption, info: whichOption }]),
-            contractCodeTemp.content[ContentKeys.Start].rows.slice(decodeLines[0],))
-          contractCodeTemp.content[ContentKeys.Start].rows = newArray
-        } else {
-          // if it doesnt exist create a new abi.encode
-          let indexBlockBegins = 0;
-          let indexBlockEnds = 0;
-          for (let k = 0; k < contractCodeTemp.content[ContentKeys.Start].rows.length; k++) {
-            let row = contractCodeTemp.content[ContentKeys.Start].rows[k]
-            if (row.text.match(/\{/)) indexBlockBegins = k
-            if (row.text.match(/\}/)) indexBlockEnds = k
-          }
-          // new decoding Lines
+        // new decoding Lines
+        if (indexBlockBegins !== null && indexBlockEnds !== null) {
+
           let decodingLines = [
-            { text: "    uint256 duration;", info: "deadline" },
+            { text: `    ${variableType} ${variableName};`, info: whichOption },
             { text: "    ", info: "decode" },
             { text: "    (", info: "decode" },
-            { text: "     duration", info: "deadline" },
-            { text: "    ) = abi.decode(votingParams, (uint256));", info: "decode" }
+            { text: `     ${variableName}`, info: whichOption }
           ]
-          let newRows = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockBegins + 1).concat(
+          decodingLines.push({
+            text: `    ) =  ${decodeFunctionName}(votingParams` +
+              (encodeDecodeOfVotingExists ? ");" : ", (uint256));"),
+            info: "decode"
+          })
+
+          // add content to the Start content key
+          contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.Start].rows,
             decodingLines,
-            contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockBegins + 1,))
-          contractCodeTemp.content[ContentKeys.Start].rows = newRows
+            indexBlockBegins + 1
+          )
 
-          // set the deadline
-          let newDeadlineSetter = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockEnds + decodingLines.length - 1).concat(
-            [
-              { text: "    ", info: "deadline" },
-              { text: "    _setDeadline(identifier, duration);", info: "deadline" },
-            ],
-            contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockEnds + decodingLines.length - 1,))
-          contractCodeTemp.content[ContentKeys.Start].rows = newDeadlineSetter
-
+          if (whichOption == "duration") {
+            // set the deadline
+            let newDeadlineSetter = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockEnds + decodingLines.length - 1).concat(
+              [
+                { text: "    ", info: "deadline" },
+                { text: "    _setDeadline(identifier, duration);", info: "deadline" },
+              ],
+              contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockEnds + decodingLines.length - 1,))
+            contractCodeTemp.content[ContentKeys.Start].rows = newDeadlineSetter
+          }
         }
 
-        return [ContentKeys.Start]
 
       }
-      // If Encoding is not enabled
 
+      return contentKeysWhereOptionIsPresent
 
     }
+
+
+    // }
 
 
 
