@@ -26,10 +26,11 @@ enum ContentKeys {
   Name,
   Dependencies,
   Constructor,
-  EncodeDecodeVotingParams,
   Start,
   Vote,
   Implement,
+  DecodeVotingParams,
+  EncodeVotingParams,
   Main,
   SupportsInterface,
 }
@@ -100,6 +101,7 @@ interface VotingParamOptions {
     token?: boolean,
     expectReturnValue?: boolean,
     bareBonesImplement?: boolean
+    encodeAndDecodeVoting?: boolean
   }
   allDisabled: boolean
 }
@@ -119,7 +121,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         [ContentKeys.Name]: { rows: [], visible: false },
         [ContentKeys.Dependencies]: { rows: [], visible: false },
         [ContentKeys.Constructor]: { rows: [], visible: false },
-        [ContentKeys.EncodeDecodeVotingParams]: { rows: [], visible: false },
+        [ContentKeys.DecodeVotingParams]: { rows: [], visible: false },
+        [ContentKeys.EncodeVotingParams]: { rows: [], visible: false },
         [ContentKeys.Start]: { rows: [], visible: false },
         [ContentKeys.Vote]: { rows: [], visible: false },
         [ContentKeys.Implement]: { rows: [], visible: false },
@@ -205,7 +208,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     const deleteFromContractCode = (contractCodeTemp: ContractCode, whichOption: string) => {
       // delete the rows with deadline in them
       if (!(whichOption in contractCodeTemp.reverseLookup)) return null
-      console.log('Inside delteFromContractCode')
+      console.log('Inside deleteFromContractCode')
       for (let contentKey of contractCodeTemp.reverseLookup[whichOption]) {
         contractCodeTemp.content[contentKey].rows = contractCodeTemp.content[contentKey].rows.filter(r => {
           return r.info != whichOption
@@ -262,13 +265,25 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     }
 
 
-    function checkWhetherAndWhereRegexAppears(rows: Array<{ text: string, info: string }>, regex: RegExp): (number | null) {
+    function checkWhetherAndWhereRegexAppears(rows: Array<{ text: string, info: string }>, regex: RegExp): (Array<number> | null) {
       let lines: Array<number> = []
       rows.forEach((row, index) => { if (row.text.match(regex)) lines.push(index) })
-      if (lines.length > 0) return lines[0]
+      if (lines.length > 0) return lines
       return null
     }
 
+    function findLastIndexBeforeThisIndex(indices: Array<number>, thisIndex: number): (number | null) {
+      if (indices.length == 0) return null
+      if (indices[0] > thisIndex) return null
+      let index = 0;
+      for (let i = 0; i < indices.length; i++) {
+        console.log(`This index is ${thisIndex} and the current index is ${indices[i]}.`)
+        if (indices[i] >= thisIndex) break;
+        index = indices[i];
+      }
+      console.log('The winner is', index)
+      return index
+    }
 
     // start
     const addVotingParams = (contractCodeTemp: ContractCode, whichOption: string) => {
@@ -277,32 +292,51 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       let variableName = (whichOption == "deadline" ? "duration" : whichOption)
       let variableType = "uint256"
       // TODO: change variable Types depending on whichOption
-      if (whichOption == "deadline") {
-        variableType = "uint256"
-      }
+      if (whichOption == "deadline") variableType = "uint256"
+
 
       // a flag that is enabled when the encoding functionality is enabled
-      let encodeDecodeOfVotingExists: boolean = contractCodeTemp.content[ContentKeys.EncodeDecodeVotingParams].visible
+      let encodeDecodeOfVotingExists: boolean = (
+        contractCodeTemp.content[ContentKeys.DecodeVotingParams].visible &&
+        contractCodeTemp.content[ContentKeys.EncodeVotingParams].visible)
       let decodeFunctionName: string = (encodeDecodeOfVotingExists ? "decodeParameters" : "abi.decode")
       // check whether decoding already exists in the start function
+      let abiDecodeExists: boolean = true
       let abidecodeindex = checkWhetherAndWhereRegexAppears(
         contractCodeTemp.content[ContentKeys.Start].rows,
-        new RegExp(decodeFunctionName))
+        new RegExp("abi.decode"))
+      // could still be the old one though ()
+      if (abidecodeindex == null) {
+        abiDecodeExists = false
+        abidecodeindex = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.Start].rows,
+          new RegExp("decodeParameters"))
+      }
 
+      let indexStartParanthesesBegin = checkWhetherAndWhereRegexAppears(
+        contractCodeTemp.content[ContentKeys.Start].rows,
+        /\(/)
 
-      if (abidecodeindex !== null) {
+      console.log(`We are in addVotingParams and the option is ${whichOption} and abiDecodeExists: ${abiDecodeExists}.`)
 
+      if (abidecodeindex !== null && indexStartParanthesesBegin !== null) {
+        // where does the decoded parantheses begin
+        // NOTE: abidecodeindex could be abi.decode, even though a decode function exists
+        let abidecodeBeginsIndex = findLastIndexBeforeThisIndex(indexStartParanthesesBegin, abidecodeindex[0])
+        if (abidecodeBeginsIndex == null) { throw "Couldnt find the beginning of the abi decoding parantheses!" }
         contentKeysWhereOptionIsPresent.push(ContentKeys.Start)
 
-        // if it exists insert duration option just before
+
+        // if it exists insert option as the first one with a comma
         contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
           contractCodeTemp.content[ContentKeys.Start].rows,
           [{ text: `     ${variableName},`, info: whichOption }],
-          abidecodeindex
+          abidecodeBeginsIndex + 1
         )
 
+
       } else {
-        // if it doesnt exist create a new abi.encode
+        // if it doesnt exist create a new abi.decode or decodeParameters
         let indexBlockBegins = checkWhetherAndWhereRegexAppears(
           contractCodeTemp.content[ContentKeys.Start].rows,
           /\{/)
@@ -330,21 +364,132 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
             contractCodeTemp.content[ContentKeys.Start].rows,
             decodingLines,
-            indexBlockBegins + 1
+            indexBlockBegins[0] + 1
           )
 
-          if (whichOption == "duration") {
+          if (whichOption == "deadline") {
             // set the deadline
-            let newDeadlineSetter = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockEnds + decodingLines.length - 1).concat(
+            let newDeadlineSetter = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockEnds[0] + decodingLines.length - 1).concat(
               [
-                { text: "    ", info: "deadline" },
-                { text: "    _setDeadline(identifier, duration);", info: "deadline" },
+                { text: "    ", info: whichOption },
+                { text: `    _setDeadline(identifier, ${variableName});`, info: whichOption },
               ],
-              contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockEnds + decodingLines.length - 1,))
+              contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockEnds[0] + decodingLines.length - 1,))
             contractCodeTemp.content[ContentKeys.Start].rows = newDeadlineSetter
           }
         }
 
+
+        // We do not need to deal with the case that the encodeParameters exists or doesnt
+        // because if it is made to exist, then the body is automatically created along with it.
+
+      }
+
+      // now deal with the encode and decode functions
+
+
+      // if decodeParameters exists:
+      if (encodeDecodeOfVotingExists) {
+        // DECODE
+        // add the options into the DecodeFunctions
+        contentKeysWhereOptionIsPresent.push(ContentKeys.DecodeVotingParams)
+
+        // PART I
+        // First modify the return statement in the function definition
+        // find the index where the return statement begins
+        let indexReturnBegins = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+          /returns\(/)
+        let indexAbiDecodeBegins = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+          /abi.decode/)
+        let indexDecodeParanthesesBegin = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+          /\(/)
+
+        // we need to adjust the index by the inserted row (in case it was inserted)
+        let indexShiftDecode = 0;
+
+        if (indexReturnBegins !== null) {
+          let newLines = [{ text: `    ${variableType} ${variableName},`, info: whichOption }]
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+            newLines,
+            indexReturnBegins[0] + 1
+          )
+          indexShiftDecode = newLines.length
+        }
+
+        // PART II
+        // Now modify the body of the decode function
+
+
+        if (indexAbiDecodeBegins !== null && indexDecodeParanthesesBegin !== null) {
+          let indexStartDecodeParanthesesBegin = findLastIndexBeforeThisIndex(indexDecodeParanthesesBegin, indexAbiDecodeBegins[0])
+          if (indexStartDecodeParanthesesBegin == null) { throw "Couldnt find the beginning of the abi decoding parantheses!" }
+
+          console.log('HEREE all the indexDecodeParanthesesBegin bigns', indexDecodeParanthesesBegin)
+          console.log('HEREE the indexAbiDecodeBegins[0]', indexAbiDecodeBegins[0])
+          console.log('HEREE the indexStartDecodeParanthesesBegin', indexStartDecodeParanthesesBegin)
+          console.log('HEREE the indexShiftDecode', indexShiftDecode)
+
+          // if it exists insert option as the first one with a comma
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+            [{ text: `         ${variableName},`, info: whichOption }],
+            indexStartDecodeParanthesesBegin + indexShiftDecode + 1
+          )
+
+          // also modify the abi.decode statement if necessary
+          let beginningOfDecodeString: string = "abi.decode(votingParams, ("
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams]
+            .rows[indexAbiDecodeBegins[0] + indexShiftDecode]
+            .text = contractCodeTemp.content[ContentKeys.DecodeVotingParams]
+              .rows[indexAbiDecodeBegins[0] + indexShiftDecode]
+              .text.replace(
+                beginningOfDecodeString,
+                beginningOfDecodeString + `${variableType}, `)
+
+
+        }
+
+        // ENCODE
+        // now add also the encode things
+        contentKeysWhereOptionIsPresent.push(ContentKeys.EncodeVotingParams)
+
+        // PART I
+        // find first appearance
+        let indexEncodeFunctionBegins = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows,
+          /function encodeParameters\(/)
+        let indexEncodeCallBegins = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows,
+          /votingParams = abi.encode\(/)
+
+        // we need to adjust the index by the inserted row (in case it was inserted)
+        let indexShiftEncode = 0;
+
+        // add the variable to encode parameters
+        if (indexEncodeFunctionBegins !== null) {
+          let addedLines = [{ text: `    ${variableType} ${variableName},`, info: whichOption }]
+          contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows,
+            addedLines,
+            indexEncodeFunctionBegins[0] + 1
+          )
+          indexShiftEncode += addedLines.length
+        }
+
+        // Part II 
+        // find the first appearance of encoding
+
+        if (indexEncodeCallBegins !== null) {
+          contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.EncodeVotingParams].rows,
+            [{ text: `        ${variableName},`, info: whichOption }],
+            indexEncodeCallBegins[0] + indexShiftEncode + 1
+          )
+        }
 
       }
 
@@ -353,7 +498,124 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     }
 
 
-    // }
+    function handleEncodeAndDecodeVotingParams(event: any) {
+
+      let votingParamOptionsTemp = { ...votingParamOptions }
+      votingParamOptionsTemp.options.encodeAndDecodeVoting = event.target.checked
+
+
+      let contractCodeTemp: ContractCode = { ...contractCode }
+
+      if (event.target.checked) {
+        // Case Event.target.checked = true
+
+
+
+        // add the two functions and make them visible
+        contractCodeTemp.content[ContentKeys.EncodeVotingParams] = {
+          rows: [
+            ``,
+            `/// @dev encoding the voting parameters`,
+            `function encodeParameters(`,
+            `)`,
+            `public`,
+            `pure`,
+            `returns(bytes memory votingParams)`,
+            `{`,
+            ``,
+            `    votingParams = abi.encode(`,
+            `    );`,
+            ``,
+            `}`
+          ].map(t => { return { text: t, info: "encodeVotingParams" } }),
+          visible: true
+        }
+
+        contractCodeTemp.content[ContentKeys.DecodeVotingParams] = {
+          rows: [
+            ``,
+            `/// @dev decode parameters`,
+            `function decodeParameters(bytes memory votingParams)`,
+            `public`,
+            `pure`,
+            `returns(`,
+            `){`,
+            ``,
+            `    (`,
+            `    ) = abi.decode(votingParams, ());`,
+            `}`
+          ].map(t => { return { text: t, info: "decodeVotingParams" } }),
+          visible: true
+        }
+
+
+
+
+        contractCodeTemp.reverseLookup["encodeVotingParams"] = [ContentKeys.EncodeVotingParams]
+        contractCodeTemp.reverseLookup["decodeVotingParams"] = [ContentKeys.DecodeVotingParams]
+
+        // actually delete what has been there in the start and add the voting params again one by one
+
+        let newRows = []
+        let LinesWithTheseInfosToBeDeleted = possibleVotingParams.concat("decode")
+        for (let row of contractCodeTemp.content[ContentKeys.Start].rows) {
+          if (!LinesWithTheseInfosToBeDeleted.includes(row.info)) { newRows.push(row) }
+        }
+        contractCodeTemp.content[ContentKeys.Start].rows = newRows
+
+        // add all the votingParameters too
+        for (let votingParam of possibleVotingParams) {
+          console.log(votingParam)
+          if (votingParamOptions.options[votingParam as keyof typeof votingParamOptions.options]) {
+            console.log(`${votingParam} is ticked!`)
+            addVotingParams(contractCodeTemp, votingParam)
+          }
+        }
+
+
+      } else {
+        // Case Event.target.checked = false
+        // deleteFromContractCode(contractCodeTemp, "encodeVotingParams")
+        // deleteFromContractCode(contractCodeTemp, "decodeVotingParams")
+
+        // basically take the line from the DecodeVotingParams function
+        // and plug it into the Start function
+        let indexAbiDecodeBeginsInDecode = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+          /abi.decode/)
+        let indexAbiDecodeBeginsInStart = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
+          /decodeParameters/)
+        if (indexAbiDecodeBeginsInDecode !== null && indexAbiDecodeBeginsInStart !== null) {
+          let text = contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows[indexAbiDecodeBeginsInDecode[0]].text
+          contractCodeTemp.content[ContentKeys.Start].rows[indexAbiDecodeBeginsInStart[0]].text = text
+        }
+
+        contractCodeTemp.content[ContentKeys.EncodeVotingParams] = {
+          rows: [],
+          visible: false
+        }
+        contractCodeTemp.content[ContentKeys.DecodeVotingParams] = {
+          rows: [],
+          visible: false
+        }
+      }
+
+
+      let text = getTextFromContentRows(contractCodeTemp.content)
+      contractCodeTemp.text = text
+      contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
+      setContractCode(contractCodeTemp)
+
+
+
+      // setting votingParamOptions
+      // handling allDisabled field
+      let allDisabled = Object.keys(votingParamOptionsTemp.options).every(k => !votingParamOptionsTemp.options[k as keyof typeof votingParamOptionsTemp.options])
+      votingParamOptionsTemp.allDisabled = allDisabled
+      // set voting params options
+      setVotingParamOptions(votingParamOptionsTemp)
+    }
 
 
 
@@ -490,6 +752,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           // console.log('Halloo')
           deleteFromContractCode(contractCodeTemp, "deadline")
           // TODO: More careful here (re abi and decoding)
+
+          // TODO: What if last option
         }
 
         let text = getTextFromContentRows(contractCodeTemp.content)
@@ -508,6 +772,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       setVotingParamOptions(votingParamOptionsTemp)
 
     }
+
 
 
     const handleSeeFunction = (event: any, option: string, func: string) => {
@@ -762,7 +1027,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
               onChange={(event) => handleBareBonesVotingContracts(event.target.checked)} />
             <label style={{ paddingLeft: "10px" }}>
               <div style={{ display: "inline", color: (!votingParamOptions.allDisabled ? "gray" : "black") }}>
-                Use bare bones Voting Contract template
+                Use bare bones Voting Contract template (Recommended to uncheck)
                 <span style={{ color: bootstrapColors.danger }}>
                   {contractCode.allowEditing ? "(You will loose your edited changes if you uncheck! Will be fixed in the next version!)" : ""}
                 </span>
@@ -798,12 +1063,35 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
                 checked={votingParamOptions.options.deadline}
                 value={"chooseDeadline"}
                 id="chooseDeadline"
-                onChange={(event) => handleChooseVotingParams(event, "deadline")}>
+                onChange={(event) => {
+                  handleChooseVotingParams(event, "deadline")
+                }}>
               </input><div style={{ display: "inline", marginLeft: "20px" }}> add deadline option </div>
+            </div>
+            <hr />
+
+            <h5>Add Encode and Decode Parameters</h5>
+            <div style={{
+              display: "block",
+              width: "100%",
+              padding: "5px",
+
+            }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.encodeAndDecodeVoting}
+                value={"chooseEncodeDecode"}
+                id="chooseEncodeDecode"
+                onChange={(event) => {
+                  console.log('HII, The current Start function before calling changeEncode looks like this', contractCode.content[ContentKeys.Start].rows)
+                  handleEncodeAndDecodeVotingParams(event)
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> add encode and decode parameters </div>
             </div>
           </div>
 
         </div>
+
         <hr />
         {/*  Main Text Area */}
         <div className="row">
