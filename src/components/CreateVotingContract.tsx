@@ -100,8 +100,11 @@ interface VotingParamOptions {
     doubleVotingGuard?: boolean,
     token?: boolean,
     expectReturnValue?: boolean,
-    bareBonesImplement?: boolean
-    encodeAndDecodeVoting?: boolean
+    bareBonesImplement?: boolean,
+    encodeAndDecodeVoting?: boolean,
+    storeStatus?: boolean,
+    storeTarget?: boolean,
+    storeCallbackHash?: boolean
   }
   allDisabled: boolean
 }
@@ -140,7 +143,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     const [contractName, setContractName] = useState<string>("")
     const [votingParamOptions, setVotingParamOptions] = useState<VotingParamOptions>({ options: {}, allDisabled: true })
     const [functionInspection, setFunctionInspection] = useState<{ option?: string, function?: string }>({})
-    const [useBareBonesVotingContract, setUseBareBonesVotingContract] = useState<boolean>(true)
+    const [useBareBonesVotingContract, setUseBareBonesVotingContract] = useState<boolean>(false)
 
     const updateContractCode = (ev: any) => {
       let contractCodeTemp = { ...contractCode }
@@ -208,7 +211,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     const deleteFromContractCode = (contractCodeTemp: ContractCode, whichOption: string) => {
       // delete the rows with deadline in them
       if (!(whichOption in contractCodeTemp.reverseLookup)) return null
-      console.log('Inside deleteFromContractCode')
       for (let contentKey of contractCodeTemp.reverseLookup[whichOption]) {
         contractCodeTemp.content[contentKey].rows = contractCodeTemp.content[contentKey].rows.filter(r => {
           return r.info != whichOption
@@ -242,7 +244,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         currentDependenciesMapping[currentDependencies[j]] = j
       }
 
-      console.log(currentDependencies)
 
       for (let dep of votingContractDependencies) {
         if (currentDependencies.includes(dep)) {
@@ -277,11 +278,9 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       if (indices[0] > thisIndex) return null
       let index = 0;
       for (let i = 0; i < indices.length; i++) {
-        console.log(`This index is ${thisIndex} and the current index is ${indices[i]}.`)
         if (indices[i] >= thisIndex) break;
         index = indices[i];
       }
-      console.log('The winner is', index)
       return index
     }
 
@@ -292,7 +291,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       let variableName = (whichOption == "deadline" ? "duration" : whichOption)
       let variableType = "uint256"
       // TODO: change variable Types depending on whichOption
-      if (whichOption == "deadline") { variableType = "uint256" }
+      if (whichOption == "token") { variableType = "address" }
+      if (whichOption == "expectReturnValue") { variableType = "bool" }
 
       // insert comma after argument, when its the first one
       let firstOption = possibleVotingParams.every((v) => {
@@ -325,7 +325,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         contractCodeTemp.content[ContentKeys.Start].rows,
         /\(/)
 
-      console.log(`We are in addVotingParams and the option is ${whichOption} and abiDecodeExists: ${abiDecodeExists}.`)
 
       if (abidecodeindex !== null && indexStartParanthesesBegin !== null) {
         // where does the decoded parantheses begin
@@ -357,7 +356,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         if (indexBlockBegins !== null && indexBlockEnds !== null) {
 
           let decodingLines = [
-            { text: `    ${variableType} ${variableName};`, info: whichOption },
             { text: "    ", info: "decode" },
             { text: "    (", info: "decode" },
             { text: `     ${variableName}`, info: whichOption }
@@ -375,16 +373,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             indexBlockBegins[0] + 1
           )
 
-          if (whichOption == "deadline") {
-            // set the deadline
-            let newDeadlineSetter = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBlockEnds[0] + decodingLines.length - 1).concat(
-              [
-                { text: "    ", info: whichOption },
-                { text: `    _setDeadline(identifier, ${variableName});`, info: whichOption },
-              ],
-              contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBlockEnds[0] + decodingLines.length - 1,))
-            contractCodeTemp.content[ContentKeys.Start].rows = newDeadlineSetter
-          }
+
+
         }
 
 
@@ -392,6 +382,47 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         // because if it is made to exist, then the body is automatically created along with it.
 
       }
+
+      let indexBodyBegins = checkWhetherAndWhereRegexAppears(
+        contractCodeTemp.content[ContentKeys.Start].rows,
+        /\{/);
+
+      if (indexBodyBegins) {
+        let indexBodyBeginsPlustOne = indexBodyBegins[0] + 1
+        // set the rows
+        let newRowsAre = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBodyBeginsPlustOne).concat(
+          [{ text: `    ${variableType} ${variableName};`, info: whichOption }],
+          contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBodyBeginsPlustOne,))
+        contractCodeTemp.content[ContentKeys.Start].rows = newRowsAre
+      }
+
+      let indexBodyEnds = checkWhetherAndWhereRegexAppears(
+        contractCodeTemp.content[ContentKeys.Start].rows,
+        /\}/);
+
+      if (indexBodyEnds) {
+        // store voting parameters locally
+        let indexBodyEndsMinusOne = indexBodyEnds[0] - 1
+        let rows = []
+        if (firstOption) {
+          rows.push({ text: "    ", info: whichOption })
+        }
+
+        if (whichOption == "deadline") rows.push({ text: `    _setDeadline(identifier, ${variableName});`, info: whichOption })
+        else if (whichOption == "token") rows.push({ text: `    _token(identifier) = ${variableName};`, info: whichOption })
+        else if (whichOption == "quorum") rows.push({ text: `    _quorum(identifier) = ${variableName};`, info: whichOption })
+        else if (whichOption == "expectReturnValue") rows.push({ text: `    _expectReturnValue(identifier) = ${variableName};`, info: whichOption })
+        else console.log("Do nothing")
+
+        // set the rows
+        let newRowsAre = contractCodeTemp.content[ContentKeys.Start].rows.slice(0, indexBodyEndsMinusOne).concat(
+          rows,
+          contractCodeTemp.content[ContentKeys.Start].rows.slice(indexBodyEndsMinusOne,))
+        contractCodeTemp.content[ContentKeys.Start].rows = newRowsAre
+
+      }
+
+
 
       // now deal with the encode and decode functions
 
@@ -436,11 +467,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           let indexStartDecodeParanthesesBegin = findLastIndexBeforeThisIndex(indexDecodeParanthesesBegin, indexAbiDecodeBegins[0])
           if (indexStartDecodeParanthesesBegin == null) { throw "Couldnt find the beginning of the abi decoding parantheses!" }
 
-          console.log('HEREE all the indexDecodeParanthesesBegin bigns', indexDecodeParanthesesBegin)
-          console.log('HEREE the indexAbiDecodeBegins[0]', indexAbiDecodeBegins[0])
-          console.log('HEREE the indexStartDecodeParanthesesBegin', indexStartDecodeParanthesesBegin)
-          console.log('HEREE the indexShiftDecode', indexShiftDecode)
-
           // if it exists insert option as the first one with a comma
           contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows = insertContentIntoRows(
             contractCodeTemp.content[ContentKeys.DecodeVotingParams].rows,
@@ -456,7 +482,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             .text.replace(
               beginningOfDecodeString,
               beginningOfDecodeString + `${variableType}${CommaAfterArgument} `)
-          console.log("NEWEW", newText)
+
           contractCodeTemp.content[ContentKeys.DecodeVotingParams]
             .rows[indexAbiDecodeBegins[0] + indexShiftDecode]
             .text = newText
@@ -576,9 +602,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
         // add all the votingParameters too
         for (let votingParam of possibleVotingParams) {
-          console.log(votingParam)
           if (votingParamOptions.options[votingParam as keyof typeof votingParamOptions.options]) {
-            console.log(`${votingParam} is ticked!`)
             addVotingParams(contractCodeTemp, votingParamOptionsTemp, votingParam)
           }
         }
@@ -709,7 +733,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       if (typeOfVotingParam == "deadline") {
         // handling the checkbox status
         votingParamOptionsTemp.options.deadline = event.target.checked
-        console.log('options', votingParamOptionsTemp.options)
         // handling the info
         let contractCodeTemp = { ...contractCode }
         if (event.target.checked) {
@@ -771,8 +794,140 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         contractCodeTemp.text = text
         contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
         setContractCode(contractCodeTemp)
+      } else if (typeOfVotingParam == "quorum") {
+        // handling the checkbox status
+        votingParamOptionsTemp.options.deadline = event.target.checked
+        // handling the info
+        let contractCodeTemp = { ...contractCode }
+        if (event.target.checked) {
+          // add the content whereever it is needed
+          let newImportRows = contractCodeTemp.content[ContentKeys.Imports].rows.concat(
+            [`import { QuorumPrimitive } from "@leomarlo/voting-registry-contracts/src/extensions/primitives/Quorum.sol";`]
+              .map(t => { return { text: t, info: "quorum" } })
+          )
+          contractCodeTemp.content[ContentKeys.Imports] = {
+            rows: newImportRows,
+            visible: true
+          }
+          contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "QuorumPrimitive", info: "quorum" })
+          // Whenever you update the dependencies, you MUST also update the name
+          updateNameContractCode(contractCodeTemp, contractName)
 
+          // start
+          let encodingContentKeys = addVotingParams(contractCodeTemp, votingParamOptionsTemp, "quorum")
 
+          // variables and all that
+          contractCodeTemp.variables["quorum"] = ["mapping(uint256=>uint256) internal _quorum;"]
+
+          contractCodeTemp.reverseLookup["deadline"] = [
+            ContentKeys.Imports,
+            ContentKeys.Dependencies,
+            ContentKeys.Name
+          ].concat(encodingContentKeys)
+        } else {
+          // console.log('Halloo')
+          deleteFromContractCode(contractCodeTemp, "quorum")
+          // TODO: More careful here (re abi and decoding)
+
+          // TODO: What if last option
+        }
+
+        let text = getTextFromContentRows(contractCodeTemp.content)
+        contractCodeTemp.text = text
+        contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
+        setContractCode(contractCodeTemp)
+      } else if (typeOfVotingParam == "expectReturnValue") {
+        // handling the checkbox status
+        votingParamOptionsTemp.options.deadline = event.target.checked
+        // handling the info
+        let contractCodeTemp = { ...contractCode }
+        if (event.target.checked) {
+          // add the content whereever it is needed
+          let newImportRows = contractCodeTemp.content[ContentKeys.Imports].rows.concat(
+            [`import { ExpectReturnValue } from "@leomarlo/voting-registry-contracts/src/extensions/primitives/ImplementResultPrimitive.sol";`]
+              .map(t => { return { text: t, info: "expectReturnValue" } })
+          )
+          contractCodeTemp.content[ContentKeys.Imports] = {
+            rows: newImportRows,
+            visible: true
+          }
+          contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "ExpectReturnValue", info: "expectReturnValue" })
+          // Whenever you update the dependencies, you MUST also update the name
+          updateNameContractCode(contractCodeTemp, contractName)
+
+          // start
+          let encodingContentKeys = addVotingParams(contractCodeTemp, votingParamOptionsTemp, "expectReturnValue")
+
+          // variables and all that
+          contractCodeTemp.variables["expectReturnValue"] = ["mapping(uint256 => bool) internal _expectReturnValue;"]
+
+          contractCodeTemp.errors["expectReturnValue"] = ["error ExpectedReturnError(uint256 identifier);"]
+
+          contractCodeTemp.reverseLookup["expectReturnValue"] = [
+            ContentKeys.Imports,
+            ContentKeys.Dependencies,
+            ContentKeys.Name
+          ].concat(encodingContentKeys)
+        } else {
+          // console.log('Halloo')
+          deleteFromContractCode(contractCodeTemp, "expectReturnValue")
+          // TODO: More careful here (re abi and decoding)
+
+          // TODO: What if last option
+        }
+
+        let text = getTextFromContentRows(contractCodeTemp.content)
+        contractCodeTemp.text = text
+        contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
+        setContractCode(contractCodeTemp)
+      } else if (typeOfVotingParam == "token") {
+        // handling the checkbox status
+        votingParamOptionsTemp.options.deadline = event.target.checked
+        // handling the info
+        let contractCodeTemp = { ...contractCode }
+        if (event.target.checked) {
+          // add the content whereever it is needed
+          let newImportRows = contractCodeTemp.content[ContentKeys.Imports].rows.concat(
+            [`import { TokenPrimitive } from "@leomarlo/voting-registry-contracts/src/extensions/primitives/TokenPrimitive.sol";`]
+              .map(t => { return { text: t, info: "token" } })
+          )
+          contractCodeTemp.content[ContentKeys.Imports] = {
+            rows: newImportRows,
+            visible: true
+          }
+          contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "TokenPrimitive", info: "token" })
+          // Whenever you update the dependencies, you MUST also update the name
+          updateNameContractCode(contractCodeTemp, contractName)
+
+          // start
+          let encodingContentKeys = addVotingParams(contractCodeTemp, votingParamOptionsTemp, "token")
+
+          // variables and all that
+          contractCodeTemp.variables["token"] = ["mapping(uint256=>address) internal _token;"]
+
+          contractCodeTemp.reverseLookup["token"] = [
+            ContentKeys.Imports,
+            ContentKeys.Dependencies,
+            ContentKeys.Name
+          ].concat(encodingContentKeys)
+        } else {
+          // console.log('Halloo')
+          deleteFromContractCode(contractCodeTemp, "token")
+          // TODO: More careful here (re abi and decoding)
+
+          // TODO: What if last option
+        }
+
+        let text = getTextFromContentRows(contractCodeTemp.content)
+        contractCodeTemp.text = text
+        contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
+        setContractCode(contractCodeTemp)
       }
 
       // handling allDisabled field
@@ -928,6 +1083,211 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
       }
     }
 
+    function handleStorageAtInstantiation(event: any, whichOption: string) {
+
+      let votingParamOptionsTemp = { ...votingParamOptions }
+      votingParamOptionsTemp.options.storeStatus = event.target.checked
+
+      let contractCodeTemp = { ...contractCode }
+
+      // find the appearance of decoding
+      let abidecodeindex = checkWhetherAndWhereRegexAppears(
+        contractCodeTemp.content[ContentKeys.Start].rows,
+        new RegExp("abi.decode"))
+      // could still be the old one though ()
+      if (abidecodeindex == null) {
+        abidecodeindex = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.Start].rows,
+          new RegExp("decodeParameters"))
+      }
+
+      let indexStartParanthesesBegin = checkWhetherAndWhereRegexAppears(
+        contractCodeTemp.content[ContentKeys.Start].rows,
+        /\(/)
+
+      let insertAtThisIndex = 0
+
+      if (abidecodeindex !== null && indexStartParanthesesBegin !== null) {
+        let abidecodeBeginsIndex = findLastIndexBeforeThisIndex(indexStartParanthesesBegin, abidecodeindex[0])
+        if (abidecodeBeginsIndex == null) { throw "Couldnt find the beginning of the abi decoding parantheses!" }
+        insertAtThisIndex = abidecodeBeginsIndex - 1
+      } else {
+        //there should be open parantheses
+        // so it means that there is no decode function. Not a problem for us.
+
+        let indexStartBody = checkWhetherAndWhereRegexAppears(
+          contractCodeTemp.content[ContentKeys.Start].rows,
+          /\{/)
+        if (indexStartBody) {
+          insertAtThisIndex = indexStartBody[0] + 1
+        }
+      }
+
+      if (whichOption == "storeStatus") {
+        // handling the checkbox status
+        // handling the info
+        if (event.target.checked) {
+          // _callbackHash[identifier] = keccak256(callback);
+          let newLines = [{ text: `    _status[identifier] = uint256(IVotingContract.VotingStatus.active);`, info: whichOption }]
+          contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.Start].rows,
+            newLines,
+            insertAtThisIndex
+          )
+
+
+          let newImportRows = contractCodeTemp.content[ContentKeys.Imports].rows.concat(
+            [`import {StatusGetter, StatusError} from "@leomarlo/voting-registry-contracts/src/extensions/primitives/Status.sol";`]
+              .map(t => { return { text: t, info: "deadline" } })
+          )
+          contractCodeTemp.content[ContentKeys.Imports] = {
+            rows: newImportRows,
+            visible: true
+          }
+
+          contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "StatusGetter", info: "storeStatus" })
+
+          // Whenever you update the dependencies, you MUST also update the name
+          updateNameContractCode(contractCodeTemp, contractName)
+
+          // errors
+          contractCodeTemp.errors["storeStatus"] = [
+            "StatusError(uint256 identifier, uint256 status);"]
+
+          contractCodeTemp.variables["storeStatus"] = [
+            "mapping (uint256=>uint256) internal _status;"
+          ]
+
+          contractCodeTemp.functions["storeStatus"] = [
+            {
+              name: "function getStatus(uint256 identifier) public view returns(uint256 status);",
+              content: [
+                "function getStatus(uint256 identifier) public view virtual override(IStatusGetter) returns(uint256 status) {",
+                "\tstatus = _status[identifier];",
+                "}"
+              ]
+            }
+          ]
+
+          contractCodeTemp.reverseLookup["storeStatus"] = [
+            ContentKeys.Imports,
+            ContentKeys.Dependencies,
+            ContentKeys.Name,
+            ContentKeys.Start]
+
+        } else {
+          deleteFromContractCode(contractCodeTemp, "storeStatus")
+        }
+      } else if (whichOption == "storeTarget") {
+        // handling the checkbox status
+        if (event.target.checked) {
+          let newLines = [{ text: `    _target[identifier] = msg.sender;`, info: whichOption }]
+          contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.Start].rows,
+            newLines,
+            insertAtThisIndex
+          )
+
+          let newImportRows = contractCodeTemp.content[ContentKeys.Imports].rows.concat(
+            [`import {TargetPrimitive, TargetGetter} from "@leomarlo/voting-registry-contracts/src/extensions/primitives/Target.sol";`]
+              .map(t => { return { text: t, info: "deadline" } })
+          )
+          contractCodeTemp.content[ContentKeys.Imports] = {
+            rows: newImportRows,
+            visible: true
+          }
+
+          contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "TargetGetter", info: "storeTarget" })
+
+          // Whenever you update the dependencies, you MUST also update the name
+          updateNameContractCode(contractCodeTemp, contractName)
+
+          // variables 
+          contractCodeTemp.variables["storeTarget"] = [
+            "mapping (uint256=>uint256) internal _target;"
+          ]
+          // function 
+          contractCodeTemp.functions["storeTarget"] = [
+            {
+              name: "function getTarget(uint256 identifier) public view returns(address target);",
+              content: [
+                "function getTarget(uint256 identifier) public view virtual override(ITargetGetter) returns(address target) {",
+                "\ttarget = _target[identifier];",
+                "}"
+              ]
+            }
+          ]
+
+          contractCodeTemp.reverseLookup["storeTarget"] = [
+            ContentKeys.Imports,
+            ContentKeys.Dependencies,
+            ContentKeys.Name,
+            ContentKeys.Start]
+
+        } else {
+          deleteFromContractCode(contractCodeTemp, "storeTarget")
+        }
+      } else if (whichOption == "storeCallbackHash") {
+        // handling the checkbox status
+        if (event.target.checked) {
+          let newLines = [{ text: `    _callbackHash[identifier] = keccak256(callback);`, info: whichOption }]
+          contractCodeTemp.content[ContentKeys.Start].rows = insertContentIntoRows(
+            contractCodeTemp.content[ContentKeys.Start].rows,
+            newLines,
+            insertAtThisIndex
+          )
+
+          let newImportRows = contractCodeTemp.content[ContentKeys.Imports].rows.concat(
+            [`import {CallbackHashPrimitive} from "@leomarlo/voting-registry-contracts/extensions/primitives/CallbackHash.sol";`]
+              .map(t => { return { text: t, info: "deadline" } })
+          )
+          contractCodeTemp.content[ContentKeys.Imports] = {
+            rows: newImportRows,
+            visible: true
+          }
+
+          contractCodeTemp.content[ContentKeys.Dependencies] = updateDependencies(
+            contractCodeTemp.content[ContentKeys.Dependencies],
+            { text: "CallbackHashPrimitive", info: "storeCallbackHash" })
+
+          // Whenever you update the dependencies, you MUST also update the name
+          updateNameContractCode(contractCodeTemp, contractName)
+
+          contractCodeTemp.variables["storeTarget"] = [
+            "mapping(uint256 => bytes32) internal _callbackHash;"
+          ]
+
+          contractCodeTemp.reverseLookup["storeCallbackHash"] = [
+            ContentKeys.Imports,
+            ContentKeys.Dependencies,
+            ContentKeys.Name,
+            ContentKeys.Start]
+
+        } else {
+          deleteFromContractCode(contractCodeTemp, "storeCallbackHash")
+        }
+      }
+
+      let text = getTextFromContentRows(contractCodeTemp.content)
+      contractCodeTemp.text = text
+      contractCodeTemp.totalRows = getTotalRows(text, contractCodeTemp.allowEditing)
+      setContractCode(contractCodeTemp)
+
+      // handling allDisabled field
+      let allDisabled = Object.keys(votingParamOptionsTemp.options).every(k => !votingParamOptionsTemp.options[k as keyof typeof votingParamOptionsTemp.options])
+      votingParamOptionsTemp.allDisabled = allDisabled
+      console.log('allDisabled', votingParamOptionsTemp)
+      // set voting params options
+      setVotingParamOptions(votingParamOptionsTemp)
+
+    }
+
+
+
 
     const handleBareBonesVotingContracts = (bareBonesFlag: any) => {
       // set the boolean variable
@@ -1060,27 +1420,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           </div>
           <hr />
           <div style={{
-            display: (useBareBonesVotingContract ? "none" : "block")
+            display: ((useBareBonesVotingContract || contractName == "") ? "none" : "block")
           }}>
-            <h5>Voting Parameters</h5>
-            <div style={{
-              display: "block",
-              width: "100%",
-              padding: "5px",
-
-            }}>
-              <input
-                type="checkbox"
-                checked={votingParamOptions.options.deadline}
-                value={"chooseDeadline"}
-                id="chooseDeadline"
-                onChange={(event) => {
-                  handleChooseVotingParams(event, "deadline")
-                }}>
-              </input><div style={{ display: "inline", marginLeft: "20px" }}> add deadline option </div>
-            </div>
-            <hr />
-
             <h5>Add Encode and Decode Parameters</h5>
             <div style={{
               display: "block",
@@ -1094,11 +1435,92 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
                 value={"chooseEncodeDecode"}
                 id="chooseEncodeDecode"
                 onChange={(event) => {
-                  console.log('HII, The current Start function before calling changeEncode looks like this', contractCode.content[ContentKeys.Start].rows)
                   handleEncodeAndDecodeVotingParams(event)
                 }}>
               </input><div style={{ display: "inline", marginLeft: "20px" }}> add encode and decode parameters </div>
             </div>
+            <hr />
+            <h5>Voting Parameters</h5>
+            <div style={{ display: "block", width: "100%", padding: "5px" }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.deadline}
+                value={"chooseDeadline"}
+                id="chooseDeadline"
+                onChange={(event) => {
+                  handleChooseVotingParams(event, "deadline")
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> add deadline option </div>
+            </div>
+            <div style={{ display: "block", width: "100%", padding: "5px" }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.quorum}
+                value={"chooseQuorum"}
+                id="chooseQuorum"
+                onChange={(event) => {
+                  handleChooseVotingParams(event, "quorum")
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> add quorum option </div>
+            </div>
+            <div style={{ display: "block", width: "100%", padding: "5px" }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.token}
+                value={"chooseToken"}
+                id="chooseToken"
+                onChange={(event) => {
+                  handleChooseVotingParams(event, "token")
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> add token option </div>
+            </div>
+            <div style={{ display: "block", width: "100%", padding: "5px" }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.expectReturnValue}
+                value={"chooseExpectReturnValue"}
+                id="chooseExpectReturnValue"
+                onChange={(event) => {
+                  handleChooseVotingParams(event, "expectReturnValue")
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> add expectReturnValue option </div>
+            </div>
+            <hr />
+            <h5>Store At Instantiation</h5>
+            <div style={{ display: "block", width: "100%", padding: "5px" }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.storeCallbackHash}
+                value={"chooseStoreCallbackHash"}
+                id="chooseStoreCallbackHash"
+                onChange={(event) => {
+                  handleStorageAtInstantiation(event, "storeCallbackHash")
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> store hash of the callback </div>
+            </div>
+            <div style={{ display: "block", width: "100%", padding: "5px" }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.storeTarget}
+                value={"chooseStoreTarget"}
+                id="chooseStoreTarget"
+                onChange={(event) => {
+                  handleStorageAtInstantiation(event, "storeTarget")
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> store address of target contract </div>
+            </div>
+            <div style={{ display: "block", width: "100%", padding: "5px" }}>
+              <input
+                type="checkbox"
+                checked={votingParamOptions.options.storeStatus}
+                value={"chooseStoreStatus"}
+                id="chooseStoreStatus"
+                onChange={(event) => {
+                  handleStorageAtInstantiation(event, "storeStatus")
+                }}>
+              </input><div style={{ display: "inline", marginLeft: "20px" }}> store status <span style={{ color: "coral" }}><b>(Highly Recommended)</b></span></div>
+            </div>
+
           </div>
 
         </div>
@@ -1130,7 +1552,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             <h6 style={{ margin: "5px", padding: "5px" }}>Available Variables <span style={{ color: "red" }}>{(contractCode.allowEditing ? "\t(EDITING ENABLED. CANNOT TRACK VARIABLES!)" : "")}</span></h6>
             <div style={{ fontFamily: "monospace", backgroundColor: "#ddd", margin: "5px", padding: "5px", borderStyle: "solid", borderWidth: "1px", borderColor: "#aaa" }}>
               {Object.keys(contractCode.variables).map((key: any) => {
-                console.log('contractCodeVariables', key)
                 if (contractCode.variables[key].length > 0) {
                   return (
                     <>
