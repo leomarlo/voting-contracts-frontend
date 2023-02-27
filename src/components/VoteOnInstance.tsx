@@ -12,53 +12,6 @@ import {
   InstanceInternalInfoAndPointer
 } from "../utils/web3"
 
-// interface ErcInterfaceFlags {
-//   erc165: boolean,
-//   erc721: boolean,
-//   erc1155: boolean,
-// }
-
-// interface TokenInfo {
-//   name: string,
-//   symbol: string,
-//   address: string,
-//   interfaces: ErcInterfaceFlags
-// }
-// enum DoubleVotingGuard { none, onSender, onVotingData }
-
-// interface VotingInstanceExternalInfo {
-//   votingContract: ethers.Contract,
-//   identifier: ethers.BigNumber,
-//   deadline: string | undefined,
-//   ttl: number | undefined,
-//   status: string | undefined,
-//   token: TokenInfo | undefined,
-//   doubleVotingGuard: DoubleVotingGuard | undefined,
-//   quorum: { value: string, inUnitsOf: string } | undefined
-// }
-
-// interface TargetInterface {
-//   id: string | undefined,
-//   name?: string,
-//   isFunction: boolean
-// }
-
-// interface InstanceInternalInfo {
-//   index: number,
-//   sender: string | undefined,
-//   target: TargetInterface
-// }
-
-// interface InstancePointer {
-//   identifier: ethers.BigNumber,
-//   votingContractAddress: string
-// }
-
-// type InstanceInternalInfoAndPointer = InstanceInternalInfo & InstancePointer;
-
-// type VotingInstanceInfo = InstanceInternalInfo & InstancePointer & VotingInstanceExternalInfo;
-
-
 
 interface VoteOnInstanceArgs {
   instance: VotingInstanceInfo
@@ -91,6 +44,7 @@ const formatAsCalldata = (calldata: string, withSelector: boolean = true) => {
 
 const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, updateInstanceInfos }: VoteOnInstanceArgs) => {
 
+  console.log('JAFAF')
   const [receipt, setReceipt] = useState<ContractReceipt | string>("")
   const [votingDataOption, setVotingDataOption] = useState(
     {
@@ -154,13 +108,15 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
   }
 
   const submitImplementToChain = async (event: any) => {
+
     try {
       let tx = await playground.implement(instance.internal.index, instance.internal.target.calldata)
       let receipt = await tx.wait()
       setReceipt(receipt)
+      console.log('AAA submitImplementToChain')
       try {
         let status = await instance.external.votingContract.getStatus(instance.external.identifier)
-
+        console.log('AAA submitImplementToChain status', status.toString())
         if (status.toString() == "1") {
           await updateInstanceInfos(
             instance.internal.index,
@@ -182,10 +138,12 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
               attempts: (instance.chainInfo.attempts + 1)
             })
         } else {
+          console.log('AAA submitImplementToChain status is neither 1 or 2')
           await updateInstanceInfos(
             instance.internal.index,
             "transactionHash",
             {
+              transactionHash: (receipt.transactionHash ? receipt.transactionHash : undefined),
               successfulAttempt: false,
               successfulImplement: false,
               attempts: (instance.chainInfo.attempts + 1)
@@ -219,6 +177,9 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
     let deadlineCondition: boolean = instance.external.ttl == 0
     let noInformationAboutPermissionOrStatus = (instance.external.status === undefined && instance.external.implementingPermitted === undefined)
     let voteCondition = instance.external.status ? (!["0", "1", "2", "4"].includes(instance.external.status)) : false
+    console.log('noInformationAboutPermissionOrStatus', noInformationAboutPermissionOrStatus)
+    console.log('Number of attempts', instance.chainInfo.attempts)
+    console.log('Successful Attempts', instance.chainInfo.successfulAttempt)
     return {
       vote: (!implementationHappened) &&
         (
@@ -385,21 +346,22 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
             </td>
           </tr>
           {instance.internal.target.decoded !== undefined ?
-            <tr className="table-warning">
+            <tr className="table-warning" style={{ width: "100%" }}>
               <th scope="col" style={{ verticalAlign: "top" }}>calldata decoded</th>
-              <td style={{ maxHeight: "30px", overflowY: "scroll" }}>
+              <td className="table table-warning" style={{ width: "100%", maxHeight: "30px", overflowY: "scroll" }}>
                 <table className="table table-warning" style={{ width: "100%" }}>
-                  <body>
+                  <tbody>
                     {
                       instance.internal.target.decoded.map((entry) => {
+                        console.log('decoding targget', entry)
                         return (
-                          <tr>
-                            <th>{entry.name}</th>
-                            <td>{entry.value}</td>
+                          <tr className="table table-warning" style={{ width: "100%" }}>
+                            <th>{entry.name.toString()}</th>
+                            <td>{entry.value.toString()}</td>
                           </tr>
                         )
                       })}
-                  </body>
+                  </tbody>
                 </table>
               </td>
             </tr>
@@ -430,7 +392,7 @@ const VoteOnInstance: React.FC<VoteOnInstanceArgs> = ({ instance, playground, up
               {"Vote Calldata  "}
             </th>
             <td>
-              {/* TODO: Why does the Voting data not update when i change the vote */}
+
               {formatAsCalldata(
                 instance.external.doubleVotingGuard === "On Voting Data" ?
                   playground.interface.encodeFunctionData("vote", [instance.internal.index, votingDataOption.data]) :

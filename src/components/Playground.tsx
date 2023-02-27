@@ -231,22 +231,26 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
     }) => {
     if (library === undefined) return null
     let tempInstances = [...instances]
+
+    console.log(`We are updating the instance info of instance ${index} and the property is ${property}.`)
     // TODO: update information about instances, like time to live, without setting selected instances to none again. 
-    for (const instance of tempInstances) {
-      if (instance.internal.index == index) {
+    for (let i = 0; i < tempInstances.length; i++) {
+      if (tempInstances[i].internal.index == index) {
         if (property == "all") {
           let signer: ethers.providers.JsonRpcSigner = library.getSigner()
-          let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, instance.pointer.votingContractAddress, await getGeneralVotingInterface(false), instance.pointer.identifier)
-          instance.external = externalInfo
+          let externalInfo: VotingInstanceExternalInfo = await getVotingInstanceExternalInfo(signer, tempInstances[i].pointer.votingContractAddress, await getGeneralVotingInterface(false), tempInstances[i].pointer.identifier)
+          tempInstances[i].external = externalInfo
         } else if (property == "implementingPermitted") {
           try {
-            let implementingPermitted = await instance.external.votingContract.implementingPermitted(instance.external.identifier)
-            instance.external.implementingPermitted = implementingPermitted
+            let implementingPermitted = await tempInstances[i].external.votingContract.implementingPermitted(tempInstances[i].external.identifier)
+            tempInstances[i].external.implementingPermitted = implementingPermitted
           } catch (err) {
           }
         } else if (property == "transactionHash" && transactionHashAndAttempts) {
-          if (transactionHashAndAttempts.transactionHash && transactionHashAndAttempts.successfulImplement) {
-            instance.chainInfo = {
+          console.log('WE ARE IN THE CRUCIAL FUNCTION ', transactionHashAndAttempts)
+          if (transactionHashAndAttempts.transactionHash) {
+            console.log('We are in transaction hash')
+            tempInstances[i].chainInfo = {
               hash: transactionHashAndAttempts.transactionHash,
               successfulAttempt: transactionHashAndAttempts.successfulAttempt,
               successfulImplement: transactionHashAndAttempts.successfulImplement,
@@ -257,6 +261,13 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
         }
       }
     }
+
+    for (const instance of tempInstances) {
+      if (instance.internal.index == index) {
+        console.log('So the final instance is ', instance.chainInfo)
+      }
+    }
+
 
     setInstances(tempInstances)
   }

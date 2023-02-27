@@ -597,7 +597,6 @@ async function getTokenInfo(
       balanceBySelector: result[0].result.balanceBySelector,
       interfaces: result[1].result.interfaces
     }
-    console.log('Tokennn', token)
 
     message += result.map(r => r.message).join("")
   } catch (err) { console.log(err); message = 'No getToken method found!\n' + JSON.stringify(err) + '\n' }

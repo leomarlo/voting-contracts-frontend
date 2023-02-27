@@ -49,7 +49,7 @@ const Main: React.FC = () => {
   const columnWidths = [["col-9", "col-1"], ["col-4", "col-6"]]
   const [focusOnDetails, setFocusOnDetails] = useState<boolean>(false)
   /* CHANGE SELECTED PAGE HERE */
-  const [selectedPage, setSelectedPage] = useState<Pages>(Pages.VotingContracts)
+  const [selectedPage, setSelectedPage] = useState<Pages>(Pages.VotingPlayground)
   const [detailsPage, setDetailsPage] = useState<JSX.Element>(<></>)
 
   const detailsHandling: DetailsHandling = {
