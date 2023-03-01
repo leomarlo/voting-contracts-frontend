@@ -142,6 +142,30 @@ interface instanceDisplayInfo {
 
 const parseDate = /(\d{1})\/(\d{2})\/(\d{3}),/
 
+function getIndicesSortedByDate(infos: Array<VotingInstanceInfo>, recentAtTop: boolean): Array<number> {
+  let dates = infos.map(i => {
+    if (i.external.deadline) {
+      return new Date(i.external.deadline.replace(parseDate, '$1-$2-$3'))
+    } else {
+      return new Date()
+    }
+  })
+  let indexedDates = infos.map(function (e, i) {
+    return {
+      ind: i,
+      val: (e.external.deadline) ? new Date(e.external.deadline.replace(parseDate, '$1-$2-$3')) : new Date()
+    }
+  });
+  // sort index/value couples, based on values
+  indexedDates.sort((x, y) => {
+    let condition = recentAtTop ? x.val < y.val : x.val > y.val
+    return condition ? 1 : x.val == y.val ? 0 : -1
+  });
+  // make list keeping only indices
+  return indexedDates.map((e) => { return e.ind });
+}
+
+
 const setPlaygroundInstances = async (
   chainId: number,
   signer: ethers.providers.JsonRpcSigner,
@@ -158,27 +182,10 @@ const setPlaygroundInstances = async (
   setInstances(infos)
   setInstanceDisplayInfo(infos.map((_, i) => { return { index: i, selected: false } }))
   setPlayground(playgroundContract)
-  let dates = infos.map(i => {
-    if (i.external.deadline) {
-      return new Date(i.external.deadline.replace(parseDate, '$1-$2-$3'))
-    } else {
-      return new Date()
-    }
-  })
-  let indexedDates = infos.map(function (e, i) {
-    return {
-      ind: i,
-      val: (e.external.deadline) ? new Date(e.external.deadline.replace(parseDate, '$1-$2-$3')) : new Date()
-    }
-  });
-  // sort index/value couples, based on values
-  indexedDates.sort((x, y) => { return x.val < y.val ? 1 : x.val == y.val ? 0 : -1 });
-  // make list keeping only indices
-  let indices = indexedDates.map((e) => { return e.ind });
-  console.log('DAATTA', indices)
+
   // infos[0].external.deadline
   // setDisplayedInstances(infos.map((_, i) => i))
-  setDisplayedInstances(indices)
+  setDisplayedInstances(getIndicesSortedByDate(infos, true))
   let votingRegistryInterface = await getVotingRegistryInterface(false)
   let _registry = new ethers.Contract(await playgroundContract.VOTING_REGISTRY(), votingRegistryInterface, signer)
   setRegistry(_registry)
@@ -269,9 +276,7 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
           } catch (err) {
           }
         } else if (property == "transactionHash" && transactionHashAndAttempts) {
-          console.log('WE ARE IN THE CRUCIAL FUNCTION ', transactionHashAndAttempts)
           if (transactionHashAndAttempts.transactionHash) {
-            console.log('We are in transaction hash')
             tempInstances[i].chainInfo = {
               hash: transactionHashAndAttempts.transactionHash,
               successfulAttempt: transactionHashAndAttempts.successfulAttempt,
@@ -281,12 +286,6 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
           }
 
         }
-      }
-    }
-
-    for (const instance of tempInstances) {
-      if (instance.internal.index == index) {
-        console.log('So the final instance is ', instance.chainInfo)
       }
     }
 
@@ -401,19 +400,22 @@ const getCurrentVotingInstances = (detailsHandling: DetailsHandling) => {
   return (
     <div>
       <div>
-        <div style={{ display: "inline-block", width: "30%" }}>
+        <div style={{ display: "inline-block", textAlign: "right", paddingRight: "20px", width: "50%" }}>
+          Filter for the status:
+        </div>
+        <div style={{ display: "inline-block", width: "50%", paddingRight: "20px" }}>
 
           <Select
             onChange={(event) => handleDisplayedInstanceChange(event, "status")}
             isMulti
-            placeholder="Filter Status"
+            placeholder="Status"
             options={statusFilterOptions}
             className="basic-multi-select"
             classNamePrefix="select"
           ></Select>
         </div>
       </div>
-      <div style={{}}>
+      <div style={{ overflowY: "scroll", maxHeight: "50vh", margin: "15px" }}>
         <table style={{ verticalAlign: "middle", tableLayout: "fixed" }} className="table">
           <thead>
             <tr>
