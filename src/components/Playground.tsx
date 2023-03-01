@@ -831,9 +831,43 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
       <>
         <p>
           At its heart the DAO has a <span style={linkStyle}>counter</span> variable that may be tampered with.
-          The counter can be change via the function <span onClick={() => { }} style={linkStyle}>changeCounter(uint256 by)</span>.
-          Initially this changes the counter by the addition of an amount 'by'. However, also the arithmetic operation that changes the counter is modifiable.
-          It can be set either to addition {"(Operation = 0)"}, subtraction {"(Operation = 1)"} or  multiplication {"(Operation = 2)"} via the function <span style={linkStyle}>changeOperation(Operation newOperation)</span>.
+          The counter can be changed via the function <span onClick={() => { }} style={linkStyle}>changeCounter(uint256 by)</span>.
+          Initially this changes the counter by the addition of an amount 'by'. However, also the arithmetic operation is modifiable.
+          It can be set either to addition {"(Operation = 0)"}, subtraction {"(Operation = 1)"} or  multiplication {"(Operation = 2)"}
+          via the function <span style={linkStyle}>changeOperation(Operation newOperation)</span>.
+          To emulate a typical DAO structure we have several types of access rights in place.
+          Triggering  <span style={linkStyle}>changeCounter(uint256 by)</span> can be triggered either <i>by a vote or members who hold an office</i>,
+          resembling some sort of hybrid access right. In this playground DAO we have created the possibility to vote members into <span style={linkStyle}>office</span> via
+          the function <span style={linkStyle}> newIncumbent(string memory office, address _newIncumbent)</span>, which <i>can only be triggered via a vote</i>.
+          Another function with hybrid access rights is <span style={linkStyle}>changeOperation(Operation newOperation)</span>, which can be triggered either <i>by a vote or by a significant donor</i> modeling some sort of plutocratic access right.
+          A significant donor in this DAO is someone who has donated more than one ETH (or native token, depending on the chain). Anyone is allowed to donate, of course, simply by sending ETH (or native tokens) to the DAO without triggering any function.
+          Lastly there are functions that can be triggered by anyone regardless. For instance adding a simple voting contract via <span style={linkStyle}>addSimpleVotingContract(address votingContract)</span> does not require any rights.
+          In this DAO the simple voting contracts are contracts that cannot implement calldata to the Playground DAO. Another set of functions that can be triggered by anyone without a vote is of course the <span style={linkStyle}>vote(uint256 identifier, bytes calldata votingData)</span> function itself and the <span style={linkStyle}>implement(uint256 identifier, bytes calldata callback)</span> function.
+          To start a new voting instance one can trigger <span style={linkStyle}>start(bytes memory votingParams, bytes calldata callback)</span> without a vote, but with the requirement that the caller has previously either voted on an instance or implemented one.
+          <br /> <br />
+          There is a plethora of other DAOy functions that can be triggered. Amongst them for instance those that effect the parameters of the DAO and those that effect the parameters of the voting itself.
+          The function <span style={linkStyle}>changeAssignedContract(bytes4 selector, address newVotingContract)</span> can change the
+          selected voting contract of a given target function with selector <span style={linkStyle}>bytes4 selector</span>. In an actual DAO one might not want every function to just have a new assigned voting contract, not even by vote, and so we have created a flag
+          that prohibits the assignment of a new voting contract to certain functions. Those flags are stored in the public mapping <span style={linkStyle}>{"mapping(bytes4=>bool) public fixedVotingContract"}</span>. A key feature of the voting contracts is their
+          configurability. In this DAO one may change what those configuring parameters can be via the function <span style={linkStyle}>changeMetaParameters(bytes4 selector, uint256 minDuration, uint256 minQuorum, address token)</span>. In this DAO we have implemented the choice that functions with a fixed voting contract may not have their meta parameters changed. For all other functions
+          with an assigned voting contract one may change the meta parameters <i>only via a vote</i>.
+          There are two more parameters that guards against starting a new voting instance without previously having at least voted on any instance or implemented one. They revolve around an
+          experience score <i>XP</i>, which is a proxy for how often one has interacted with the DAO. The first parameter is <span style={linkStyle}>uint256 minXpToStartAnything</span>, which is a global threshold to start a new voting instance on any function.
+          The second one is <span style={linkStyle}>{"mapping(bytes4=>uint256) public minXpToStartThisFunction"}</span>, which is a function specific lower bound of experience. They are both public and can respectively be altered through the
+          functions <span style={linkStyle}>setMinXpToStartAnything(uint256 newXP)</span> and <span style={linkStyle}>setMinXpToStartThisFunction(bytes4 selector, uint256 newXP)</span>
+          <br /><br />
+          For completeness we also list some of the other functions that can be modified. One may for instance deploy a new contract by
+          calling <span style={linkStyle}>deployNewContract(bytes32 salt, bytes memory bytecode)</span> and supplying both a salt and the contract bytecode.
+          One may even call <span style={linkStyle}>wildCard(address contractAddress, bytes calldata data, uint256 value)</span> to make any contract call together with sending some ETH (or native token).
+          One may approve and send tokens through the following functions: <span style={linkStyle}>approveNFT(address token, address spender, uint256 tokenId)</span>, <span style={linkStyle}>approveERC20Token(address token, address spender, uint256 amount)</span>, <span style={linkStyle}>sendNFT(address token, address from, address to, uint256 tokenId)</span>, <span style={linkStyle}>sendERC20Token(address token, address from, address to, uint256 amount)</span> or <span style={linkStyle}>sendNativeToken(address payable to, uint256 amount)</span>.
+
+          Finally there are functions that revolve around our Playground Voting Badge, which is an NFT that gets minted for anyone
+          who decides to start a new voting instance or to vote or to implement a successful outcome. The number of badge tokens that a caller holds is a proxy of the caller's experience.
+          The first of those functions is the deployment of a new such voting badge via <span style={linkStyle}>deployNewBadge(bytes32 salt, bytes memory bytecode, address badger) </span>.
+          The token cannot be transferred at first. But one may allow them to be transferred and traded by triggering the function <span style={linkStyle}>setTradingEnabledGlobally(bool enable)</span> through a vote and setting the enabled flag to <i>true</i>. Setting it to <i>false</i> will disable the possibility of exhanging that token.
+          In this DAO one may also change the threshold at which the transfer of this token is allowed. This threshold is the number of tokens that the trader holds. Once the trader exceeded that threshold they may trade
+          irrespective of whether they fall below it at some point in the future. The corresponding function that sets the new threshold is called <span style={linkStyle}>setEnableTradingThreshold(uint256 newThreshold)</span> and can be called only through a vote.
+
           {/* 
           Functions that can be triggered by anyone (1) are all the view functions and the addition of a new voting contract into the DAO's storage.
           Naturally, one may also deposit the native currency into the contract. This triggers the receive() function and the deposit gets recorded in the contract. */}
