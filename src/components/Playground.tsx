@@ -140,6 +140,8 @@ interface instanceDisplayInfo {
   selected: boolean
 }
 
+const parseDate = /(\d{1})\/(\d{2})\/(\d{3}),/
+
 const setPlaygroundInstances = async (
   chainId: number,
   signer: ethers.providers.JsonRpcSigner,
@@ -156,7 +158,27 @@ const setPlaygroundInstances = async (
   setInstances(infos)
   setInstanceDisplayInfo(infos.map((_, i) => { return { index: i, selected: false } }))
   setPlayground(playgroundContract)
-  setDisplayedInstances(infos.map((_, i) => i))
+  let dates = infos.map(i => {
+    if (i.external.deadline) {
+      return new Date(i.external.deadline.replace(parseDate, '$1-$2-$3'))
+    } else {
+      return new Date()
+    }
+  })
+  let indexedDates = infos.map(function (e, i) {
+    return {
+      ind: i,
+      val: (e.external.deadline) ? new Date(e.external.deadline.replace(parseDate, '$1-$2-$3')) : new Date()
+    }
+  });
+  // sort index/value couples, based on values
+  indexedDates.sort((x, y) => { return x.val < y.val ? 1 : x.val == y.val ? 0 : -1 });
+  // make list keeping only indices
+  let indices = indexedDates.map((e) => { return e.ind });
+  console.log('DAATTA', indices)
+  // infos[0].external.deadline
+  // setDisplayedInstances(infos.map((_, i) => i))
+  setDisplayedInstances(indices)
   let votingRegistryInterface = await getVotingRegistryInterface(false)
   let _registry = new ethers.Contract(await playgroundContract.VOTING_REGISTRY(), votingRegistryInterface, signer)
   setRegistry(_registry)
@@ -849,7 +871,7 @@ const PlaygroundComp: React.FC<PlaygroundArgs> = ({ detailsHandling }: Playgroun
         <span style={{ marginLeft: "3px", ...linkStyle }} onClick={(e) => { detailsHandling.pageSetter(Pages.VotingContractIntegration) }}>
           Please read detailed information here!
         </span>
-      </p><br /><br />
+      </p>
 
       We have created a hypothetical DAO with several functions, each of which can either be triggered:
       <ol>

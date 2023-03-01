@@ -361,7 +361,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
             { text: `     ${variableName}`, info: whichOption }
           ]
           decodingLines.push({
-            text: `    ) =  ${decodeFunctionName}(votingParams` +
+            text: `    ) = ${decodeFunctionName}(votingParams` +
               (encodeDecodeOfVotingExists ? ");" : `, (${variableType}));`),
             info: "decode"
           })
@@ -796,7 +796,7 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
         setContractCode(contractCodeTemp)
       } else if (typeOfVotingParam == "quorum") {
         // handling the checkbox status
-        votingParamOptionsTemp.options.deadline = event.target.checked
+        votingParamOptionsTemp.options.quorum = event.target.checked
         // handling the info
         let contractCodeTemp = { ...contractCode }
         if (event.target.checked) {
@@ -1086,7 +1086,6 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
     function handleStorageAtInstantiation(event: any, whichOption: string) {
 
       let votingParamOptionsTemp = { ...votingParamOptions }
-      votingParamOptionsTemp.options.storeStatus = event.target.checked
 
       let contractCodeTemp = { ...contractCode }
 
@@ -1125,6 +1124,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
 
       if (whichOption == "storeStatus") {
         // handling the checkbox status
+
+        votingParamOptionsTemp.options.storeStatus = event.target.checked
         // handling the info
         if (event.target.checked) {
           // _callbackHash[identifier] = keccak256(callback);
@@ -1181,6 +1182,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           deleteFromContractCode(contractCodeTemp, "storeStatus")
         }
       } else if (whichOption == "storeTarget") {
+
+        votingParamOptionsTemp.options.storeTarget = event.target.checked
         // handling the checkbox status
         if (event.target.checked) {
           let newLines = [{ text: `    _target[identifier] = msg.sender;`, info: whichOption }]
@@ -1232,6 +1235,8 @@ const createVotingContract: (votingContractsArgs: VotingContractsArgs) => JSX.El
           deleteFromContractCode(contractCodeTemp, "storeTarget")
         }
       } else if (whichOption == "storeCallbackHash") {
+
+        votingParamOptionsTemp.options.storeCallbackHash = event.target.checked
         // handling the checkbox status
         if (event.target.checked) {
           let newLines = [{ text: `    _callbackHash[identifier] = keccak256(callback);`, info: whichOption }]

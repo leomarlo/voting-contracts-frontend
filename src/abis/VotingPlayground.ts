@@ -93,25 +93,25 @@ export default [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
         "indexed": false,
         "internalType": "address",
-        "name": "votingContract",
+        "name": "sender",
         "type": "address"
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "successflag",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
         "internalType": "bytes",
-        "name": "response",
+        "name": "target",
         "type": "bytes"
       }
     ],
-    "name": "Balaa",
+    "name": "VotingInstanceStarted",
     "type": "event"
   },
   {
@@ -226,11 +226,6 @@ export default [
         "internalType": "uint256",
         "name": "tokenId",
         "type": "uint256"
-      },
-      {
-        "internalType": "enum ApprovalTypes",
-        "name": "approvalType",
-        "type": "uint8"
       }
     ],
     "name": "approveNFT",
@@ -318,7 +313,13 @@ export default [
       }
     ],
     "name": "changeCounter",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -359,7 +360,13 @@ export default [
       }
     ],
     "name": "changeOperation",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -612,12 +619,18 @@ export default [
       },
       {
         "internalType": "address",
-        "name": "newIncumbent",
+        "name": "_newIncumbent",
         "type": "address"
       }
     ],
     "name": "newIncumbent",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -744,6 +757,24 @@ export default [
       }
     ],
     "name": "sendNFT",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address payable",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "sendNativeToken",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
